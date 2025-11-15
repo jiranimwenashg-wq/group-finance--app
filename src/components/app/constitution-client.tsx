@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
-import { Bot, Loader2, Send, User } from "lucide-react";
+import { Bot, Loader2, Send, Upload, User } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { queryConstitution } from "@/ai/flows/query-constitution";
@@ -22,6 +22,8 @@ export default function ConstitutionClient() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const handleQuery = async () => {
     if (!constitutionText.trim()) {
@@ -60,6 +62,45 @@ export default function ConstitutionClient() {
     }
   };
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "text/plain") {
+      toast({
+        variant: "destructive",
+        title: "Invalid File Type",
+        description: "Please upload a .txt file.",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      setConstitutionText(text);
+      toast({
+        title: "File Imported",
+        description: "The constitution has been loaded from the file.",
+      });
+    };
+    reader.onerror = () => {
+      toast({
+        variant: "destructive",
+        title: "Error Reading File",
+        description: "Could not read the selected file.",
+      });
+    }
+    reader.readAsText(file);
+    // Reset file input to allow re-uploading the same file
+    event.target.value = '';
+  };
+
+
   const userAvatar = placeholderImages.find(p => p.id === 'avatar-1');
 
   return (
@@ -68,8 +109,7 @@ export default function ConstitutionClient() {
         <CardHeader>
           <CardTitle>Group Constitution</CardTitle>
           <CardDescription>
-            Paste your group's constitution here. This will be used by the AI
-            assistant to answer your questions.
+            Paste your group's constitution here or import it from a text file. This will be used by the AI assistant to answer your questions.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -80,8 +120,19 @@ export default function ConstitutionClient() {
             onChange={(e) => setConstitutionText(e.target.value)}
           />
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex-col space-y-2">
             <Button className="w-full" onClick={() => toast({ title: "Constitution Saved!", description: "The AI assistant will now use this document."})}>Save Constitution</Button>
+            <Button variant="outline" className="w-full" onClick={handleImportClick}>
+              <Upload className="mr-2 h-4 w-4" />
+              Import File (.txt)
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".txt"
+              className="hidden"
+            />
         </CardFooter>
       </Card>
 
