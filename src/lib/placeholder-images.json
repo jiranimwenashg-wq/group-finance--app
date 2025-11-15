@@ -1,3 +1,64 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "A diverse group of people collaborating around a table with laptops and documents.",
+      "imageUrl": "https://images.unsplash.com/photo-1722643882339-7a6c9cb080db?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjb21tdW5pdHklMjBmaW5hbmNlfGVufDB8fHx8MTc2MzIxMTE4MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "community finance"
+    },
+    {
+      "id": "dashboard",
+      "description": "A clean and modern digital dashboard with various charts and graphs.",
+      "imageUrl": "https://images.unsplash.com/photo-1748439435495-722cc1728b7e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmaW5hbmNpYWwlMjBkYXNoYm9hcmR8ZW58MHx8fHwxNzYzMTMzODE5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "financial dashboard"
+    },
+    {
+      "id": "ai-parser",
+      "description": "An abstract visualization of data being processed by an artificial intelligence.",
+      "imageUrl": "https://images.unsplash.com/photo-1717501219345-06ea2bf3eb80?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxBSSUyMGRhdGF8ZW58MHx8fHwxNzYzMjIyOTczfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "AI data"
+    },
+    {
+      "id": "members",
+      "description": "A grid of smiling user profile pictures.",
+      "imageUrl": "https://images.unsplash.com/photo-1638128503997-80b1e8d19811?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx0ZWFtJTIwcG9ydHJhaXRzfGVufDB8fHx8MTc2MzIyMjk3NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "team portraits"
+    },
+    {
+      "id": "insurance",
+      "description": "A document with a shield icon, symbolizing an insurance policy.",
+      "imageUrl": "https://images.unsplash.com/photo-1621998951482-d096a4c7dee4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxpbnN1cmFuY2UlMjBwb2xpY3l8ZW58MHx8fHwxNzYzMjIyOTczfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "insurance policy"
+    },
+    {
+      "id": "constitution",
+      "description": "An old, official-looking document with a gavel, representing rules and laws.",
+      "imageUrl": "https://images.unsplash.com/photo-1532153975070-2e9ab71f1b14?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxsZWdhbCUyMGRvY3VtZW50fGVufDB8fHx8MTc2MzE4NDkzMXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "legal document"
+    },
+    {
+      "id": "schedule",
+      "description": "A calendar with marked dates and arrows indicating a cycle.",
+      "imageUrl": "https://images.unsplash.com/photo-1632200011588-7c252c8c8fbf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjYWxlbmRhciUyMHNjaGVkdWxlfGVufDB8fHx8MTc2MzIyMDEwMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "calendar schedule"
+    },
+    {
+      "id": "avatar-1",
+      "description": "A placeholder avatar image for a user.",
+      "imageUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwZXJzb258ZW58MHx8fHwxNzYzMTk3MTcwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person"
+    },
+    {
+      "id": "avatar-2",
+      "description": "A placeholder avatar image for a user.",
+      "imageUrl": "https://images.unsplash.com/photo-1521566652839-697aa473761a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cGVyc29ufGVufDB8fHx8MTc2MzE5NzE3MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person"
+    },
+    {
+      "id": "avatar-3",
+      "description": "A placeholder avatar image for a user.",
+      "imageUrl": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwZXJzb258ZW58MHx8fHwxNzYzMTk3MTcwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person"
+    }
+  ]
 }

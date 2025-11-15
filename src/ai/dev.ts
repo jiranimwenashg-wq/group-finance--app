@@ -1,1 +1,6 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/generate-financial-summary.ts';
+import '@/ai/flows/parse-mpesa-sms.ts';
+import '@/ai/flows/query-constitution.ts';
