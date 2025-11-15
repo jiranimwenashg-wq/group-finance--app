@@ -34,27 +34,29 @@ export function MainNav() {
     <SidebarMenu>
       {links.map((link) => (
         <SidebarMenuItem key={link.href}>
-          <Link href={link.href} legacyBehavior passHref>
-            <SidebarMenuButton
-              isActive={pathname === link.href}
-              tooltip={{ children: link.label }}
-            >
+          <SidebarMenuButton
+            asChild
+            isActive={pathname === link.href}
+            tooltip={{ children: link.label }}
+          >
+            <Link href={link.href}>
               {link.icon}
               <span>{link.label}</span>
-            </SidebarMenuButton>
-          </Link>
+            </Link>
+          </SidebarMenuButton>
         </SidebarMenuItem>
       ))}
       <SidebarMenuItem className="mt-auto">
-         <Link href="/dashboard/settings" legacyBehavior passHref>
-            <SidebarMenuButton
-              isActive={pathname === '/dashboard/settings'}
-              tooltip={{ children: "Settings" }}
-            >
+         <SidebarMenuButton
+            asChild
+            isActive={pathname === '/dashboard/settings'}
+            tooltip={{ children: "Settings" }}
+          >
+            <Link href="/dashboard/settings">
               <Settings />
               <span>Settings</span>
-            </SidebarMenuButton>
-          </Link>
+            </Link>
+          </SidebarMenuButton>
       </SidebarMenuItem>
     </SidebarMenu>
   );
