@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import type { Member } from "@/lib/data";
 import { Button } from "../ui/button";
-import { PlusCircle, Upload } from "lucide-react";
+import { Download, PlusCircle, Upload } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,20 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleDownloadTemplate = () => {
+    const headers = ["name", "email", "phone"];
+    const csvContent = headers.join(",");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "members_template.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,11 +81,13 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
           toast({
             variant: "destructive",
             title: "Invalid CSV format",
-            description: `Missing required columns: ${missingHeaders.join(", ")}`,
+            description: `Missing required columns: ${missingHeaders.join(
+              ", "
+            )}`,
           });
           return;
         }
-        
+
         const newMembers: Member[] = results.data.map((row, index) => ({
           id: `MEM${Date.now()}${index}`,
           name: row.name,
@@ -104,6 +120,9 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Members</h1>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleDownloadTemplate}>
+            <Download className="mr-2 h-4 w-4" /> Download Template
+          </Button>
           <Button variant="outline" onClick={handleImportClick}>
             <Upload className="mr-2 h-4 w-4" /> Import CSV
           </Button>
@@ -175,12 +194,12 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
                     </span>
                   </div>
                 </TableCell>
-                <TableCell>
-                  {member.joinDate.toLocaleDateString()}
-                </TableCell>
+                <TableCell>{member.joinDate.toLocaleDateString()}</TableCell>
                 <TableCell>
                   <Badge
-                    variant={member.status === "Active" ? "default" : "outline"}
+                    variant={
+                      member.status === "Active" ? "default" : "outline"
+                    }
                     className={
                       member.status === "Active"
                         ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
