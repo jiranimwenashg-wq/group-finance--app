@@ -41,7 +41,7 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ["name", "email", "phone"];
+    const headers = ["name", "phone"];
     const csvContent = headers.join(",");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -71,7 +71,7 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const requiredHeaders = ["name", "email", "phone"];
+        const requiredHeaders = ["name", "phone"];
         const headers = results.meta.fields || [];
         const missingHeaders = requiredHeaders.filter(
           (h) => !headers.includes(h)
@@ -91,7 +91,6 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
         const newMembers: Member[] = results.data.map((row, index) => ({
           id: `MEM${Date.now()}${index}`,
           name: row.name,
-          email: row.email,
           phone: row.phone,
           joinDate: new Date(),
           status: "Active",
@@ -151,12 +150,6 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
                   <Input id="name" className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
-                  <Input id="email" type="email" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="phone" className="text-right">
                     Phone
                   </Label>
@@ -188,10 +181,7 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
                 <TableCell className="font-medium">{member.name}</TableCell>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span>{member.email}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {member.phone}
-                    </span>
+                    <span className="text-sm">{member.phone}</span>
                   </div>
                 </TableCell>
                 <TableCell>{member.joinDate.toLocaleDateString()}</TableCell>
@@ -217,3 +207,5 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
     </div>
   );
 }
+
+    

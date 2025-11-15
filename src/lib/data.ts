@@ -1,7 +1,6 @@
 export type Member = {
   id: string;
   name: string;
-  email: string;
   phone: string;
   joinDate: Date;
   status: 'Active' | 'Inactive';
@@ -29,13 +28,13 @@ export type InsurancePayment = {
 };
 
 const members: Member[] = [
-  { id: 'MEM001', name: 'Alice Johnson', email: 'alice@example.com', phone: '+254712345678', joinDate: new Date('2023-01-15'), status: 'Active' },
-  { id: 'MEM002', name: 'Bob Williams', email: 'bob@example.com', phone: '+254712345679', joinDate: new Date('2023-02-20'), status: 'Active' },
-  { id: 'MEM003', name: 'Charlie Brown', email: 'charlie@example.com', phone: '+254712345680', joinDate: new Date('2023-03-10'), status: 'Active' },
-  { id: 'MEM004', name: 'Diana Miller', email: 'diana@example.com', phone: '+254712345681', joinDate: new Date('2023-04-05'), status: 'Active' },
-  { id: 'MEM005', name: 'Ethan Davis', email: 'ethan@example.com', phone: '+254712345682', joinDate: new Date('2023-05-12'), status: 'Inactive' },
-  { id: 'MEM006', name: 'Fiona Garcia', email: 'fiona@example.com', phone: '+254712345683', joinDate: new Date('2023-06-18'), status: 'Active' },
-  { id: 'MEM007', name: 'George Rodriguez', email: 'george@example.com', phone: '+254712345684', joinDate: new Date('2023-07-22'), status: 'Active' },
+  { id: 'MEM001', name: 'Alice Johnson', phone: '+254712345678', joinDate: new Date('2023-01-15'), status: 'Active' },
+  { id: 'MEM002', name: 'Bob Williams', phone: '+254712345679', joinDate: new Date('2023-02-20'), status: 'Active' },
+  { id: 'MEM003', name: 'Charlie Brown', phone: '+254712345680', joinDate: new Date('2023-03-10'), status: 'Active' },
+  { id: 'MEM004', name: 'Diana Miller', phone: '+254712345681', joinDate: new Date('2023-04-05'), status: 'Active' },
+  { id: 'MEM005', name: 'Ethan Davis', phone: '+254712345682', joinDate: new Date('2023-05-12'), status: 'Inactive' },
+  { id: 'MEM006', name: 'Fiona Garcia', phone: '+254712345683', joinDate: new Date('2023-06-18'), status: 'Active' },
+  { id: 'MEM007', name: 'George Rodriguez', phone: '+254712345684', joinDate: new Date('2023-07-22'), status: 'Active' },
 ];
 
 const transactions: Transaction[] = [
@@ -127,3 +126,5 @@ export const getFinancialOverview = async () => {
         chartData
     };
 }
+
+    
