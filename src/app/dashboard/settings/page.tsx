@@ -20,52 +20,54 @@ import {
 import { firebaseConfig } from "@/firebase/config";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
-export default function SettingsPage() {
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Settings</h1>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+function GroupProfileCard() {
+    return (
         <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Group Profile</CardTitle>
-            <CardDescription>
-              Update your group's name and currency.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="group-name">Group Name</Label>
-              <Input id="group-name" defaultValue="Finance Club" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
-              <Select defaultValue="KES">
-                <SelectTrigger id="currency">
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
-                  <SelectItem value="USD">USD - US Dollar</SelectItem>
-                  <SelectItem value="EUR">EUR - Euro</SelectItem>
-                  <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button>Save Changes</Button>
-          </CardFooter>
-        </Card>
+        <CardHeader>
+          <CardTitle>Group Profile</CardTitle>
+          <CardDescription>
+            Update your group's name and currency.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="group-name">Group Name</Label>
+            <Input id="group-name" defaultValue="Finance Club" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="currency">Currency</Label>
+            <Select defaultValue="KES">
+              <SelectTrigger id="currency">
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
+                <SelectItem value="USD">USD - US Dollar</SelectItem>
+                <SelectItem value="EUR">EUR - Euro</SelectItem>
+                <SelectItem value="GBP">GBP - British Pound</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button>Save Changes</Button>
+        </CardFooter>
+      </Card>
+    )
+}
 
+function AppearanceCard() {
+    return (
         <Card className="lg:col-span-1">
-          <CardHeader>
+            <CardHeader>
             <CardTitle>Appearance</CardTitle>
             <CardDescription>
-              Customize the look and feel of the app.
+                Customize the look and feel of the app.
             </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </CardHeader>
+            <CardContent>
             <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
                     <h3 className="font-medium">Theme</h3>
@@ -73,25 +75,41 @@ export default function SettingsPage() {
                 </div>
                 <ThemeToggle />
             </div>
-          </CardContent>
+            </CardContent>
         </Card>
+    )
+}
 
-         <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Project Settings</CardTitle>
-            <CardDescription>
-              Manage your Firebase project settings.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-             <Button asChild variant="outline" className="w-full">
-                <Link href={`https://console.firebase.google.com/project/${firebaseConfig.projectId}`} target="_blank">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Open Firebase Console
-                </Link>
-             </Button>
-          </CardContent>
-        </Card>
+
+function ProjectSettingsCard() {
+    return (
+        <Card className="lg:col-span-1">
+        <CardHeader>
+          <CardTitle>Project Settings</CardTitle>
+          <CardDescription>
+            Manage your Firebase project settings.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+           <Button asChild variant="outline" className="w-full">
+              <Link href={`https://console.firebase.google.com/project/${firebaseConfig.projectId}`} target="_blank">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Open Firebase Console
+              </Link>
+           </Button>
+        </CardContent>
+      </Card>
+    )
+}
+
+export default function SettingsPage() {
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold">Settings</h1>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Suspense fallback={null}><GroupProfileCard /></Suspense>
+        <Suspense fallback={null}><AppearanceCard /></Suspense>
+        <Suspense fallback={null}><ProjectSettingsCard /></Suspense>
       </div>
     </div>
   );
