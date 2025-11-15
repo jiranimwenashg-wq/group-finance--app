@@ -17,13 +17,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { firebaseConfig } from "@/firebase/config";
+import { ExternalLink } from "lucide-react";
+import Link from "next/link";
 
 export default function SettingsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Settings</h1>
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>Group Profile</CardTitle>
             <CardDescription>
@@ -55,7 +58,7 @@ export default function SettingsPage() {
           </CardFooter>
         </Card>
 
-        <Card>
+        <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
             <CardDescription>
@@ -70,6 +73,23 @@ export default function SettingsPage() {
                 </div>
                 <ThemeToggle />
             </div>
+          </CardContent>
+        </Card>
+
+         <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Project Settings</CardTitle>
+            <CardDescription>
+              Manage your Firebase project settings.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+             <Button asChild variant="outline" className="w-full">
+                <Link href={`https://console.firebase.google.com/project/${firebaseConfig.projectId}`} target="_blank">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open Firebase Console
+                </Link>
+             </Button>
           </CardContent>
         </Card>
       </div>
