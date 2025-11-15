@@ -5,46 +5,19 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 
-let app: FirebaseApp;
-let auth: Auth;
-let firestore: Firestore;
-
-if (!getApps().length) {
-  try {
-    app = initializeApp();
-  } catch (e) {
-    if (process.env.NODE_ENV === 'production') {
-      console.warn(
-        'Automatic initialization failed. Falling back to firebase config object.',
-        e
-      );
-    }
-    app = initializeApp(firebaseConfig);
-  }
-} else {
-  app = getApp();
-}
-
-auth = getAuth(app);
-firestore = getFirestore(app);
-
-export function initializeFirebase() {
-  return {
-    firebaseApp: app,
-    auth,
-    firestore,
-  };
-}
-
-export function getSdks(app: FirebaseApp): {
+export function initializeFirebase(): {
   firebaseApp: FirebaseApp;
   auth: Auth;
   firestore: Firestore;
 } {
+  const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  const auth = getAuth(app);
+  const firestore = getFirestore(app);
+
   return {
     firebaseApp: app,
-    auth: getAuth(app),
-    firestore: getFirestore(app),
+    auth,
+    firestore,
   };
 }
 
