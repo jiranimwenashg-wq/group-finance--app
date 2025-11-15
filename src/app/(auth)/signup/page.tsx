@@ -16,10 +16,13 @@ import Link from 'next/link';
 import { useAuth } from '@/firebase';
 import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
 import { useRedirectIfAuthenticated } from '@/hooks/use-redirect-if-authenticated';
+import { useToast } from '@/hooks/use-toast';
+import { FirebaseError } from 'firebase/app';
 
 export default function SignupPage() {
   useRedirectIfAuthenticated();
   const auth = useAuth();
+  const { toast } = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,8 +30,21 @@ export default function SignupPage() {
   const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !name) return;
-    initiateEmailSignUp(auth, email, password);
-    // You might want to update the user's profile with the name after sign-up
+    initiateEmailSignUp(auth, email, password).catch((error: FirebaseError) => {
+      if (error.code === 'auth/email-already-in-use') {
+        toast({
+          variant: 'destructive',
+          title: 'Sign-up Failed',
+          description: 'This email address is already in use.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Sign-up Error',
+          description: error.message,
+        });
+      }
+    });
   };
 
   return (
