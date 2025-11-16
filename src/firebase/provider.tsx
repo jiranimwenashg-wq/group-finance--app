@@ -29,9 +29,9 @@ interface UserAuthState {
 }
 
 export interface FirebaseContextState {
-  firebaseApp: FirebaseApp | null;
-  firestore: Firestore | null;
-  auth: Auth | null;
+  firebaseApp: FirebaseApp;
+  firestore: Firestore;
+  auth: Auth;
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
@@ -63,21 +63,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   auth,
 }) => {
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
-    user: null,
+    user: auth.currentUser, // Initialize with the current user
     isUserLoading: true,
     userError: null,
   });
 
   useEffect(() => {
-    if (!auth) {
-      setUserAuthState({
-        user: null,
-        isUserLoading: false,
-        userError: new Error('Auth service not provided.'),
-      });
-      return;
-    }
-
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => {

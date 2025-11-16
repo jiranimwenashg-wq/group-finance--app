@@ -85,12 +85,11 @@ service cloud.firestore {
      * @principle Enforces document ownership for writes; users can only create/modify their own documents.
      */
     match /groups/{groupId}/users/{userId} {
-      allow get: if isSignedIn() && isOwner(userId);
+      allow get: if isOwner(userId);
       allow list: if false;
-
-      allow create: if isOwner(userId) && request.resource.data.groupId == groupId;
-      allow update: if isOwner(userId) && request.resource.data.groupId == groupId && request.resource.data.id == resource.data.id;
-      allow delete: if isOwner(userId) && resource.data.groupId == groupId;
+      allow create: if isOwner(userId) && request.resource.data.groupId == groupId && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && request.resource.data.groupId == groupId;
+      allow delete: if isOwner(userId);
     }
 
     /**
