@@ -179,9 +179,12 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Chama Schedule</h1>
-        <Button onClick={generateSchedule} variant="outline">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Chama Schedule</h1>
+            <p className="text-muted-foreground">Manage your group's rotating savings schedule.</p>
+        </div>
+        <Button onClick={generateSchedule} variant="outline" className="shrink-0">
           <Shuffle className="mr-2 h-4 w-4" /> Regenerate Schedule
         </Button>
       </div>

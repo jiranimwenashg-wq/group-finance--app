@@ -299,8 +299,11 @@ export default function CalendarClient() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Group Calendar</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Group Calendar</h1>
+            <p className="text-muted-foreground">Manage your group's events and important dates.</p>
+        </div>
         <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
             setIsAddDialogOpen(open);
             if (!open) {

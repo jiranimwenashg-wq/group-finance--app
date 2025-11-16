@@ -151,9 +151,12 @@ export default function InsuranceClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Insurance Tracking</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Insurance</h1>
+            <p className="text-muted-foreground">Track member payments for insurance policies.</p>
+        </div>
+        <div className="flex shrink-0 gap-2">
           <Select value={selectedPolicyId} onValueChange={setSelectedPolicyId}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select a policy" />

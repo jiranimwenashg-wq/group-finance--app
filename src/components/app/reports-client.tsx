@@ -135,7 +135,10 @@ export default function ReportsClient({ members, transactions, insurancePayments
   return (
     <div className="space-y-4">
        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">Member Reports</h1>
+        <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Member Reports</h1>
+            <p className="text-muted-foreground">Generate AI-powered financial report cards for your members.</p>
+        </div>
         <Input 
             placeholder="Filter members by name..."
             value={filter}

@@ -218,7 +218,10 @@ function ProjectSettingsCard() {
 export default function SettingsPage() {
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+            <p className="text-muted-foreground">Manage your group, appearance, and project settings.</p>
+        </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Suspense fallback={null}>
           <GroupProfileCard />

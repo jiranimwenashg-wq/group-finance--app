@@ -434,14 +434,17 @@ export default function TransactionsClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Transactions</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Transactions</h1>
+            <p className="text-muted-foreground">Track all income and expenses for your group.</p>
+        </div>
+        <div className="flex shrink-0 gap-2">
            <Button variant="outline" onClick={handleDownloadTemplate}>
             <Download className="mr-2 h-4 w-4" /> Template
           </Button>
           <Button variant="outline" onClick={handleImportClick}>
-            <Upload className="mr-2 h-4 w-4" /> Import CSV
+            <Upload className="mr-2 h-4 w-4" /> Import
           </Button>
            <input
             type="file"
@@ -453,7 +456,7 @@ export default function TransactionsClient({
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline">
-                <Bot className="mr-2 h-4 w-4" /> Parse M-Pesa SMS
+                <Bot className="mr-2 h-4 w-4" /> Parse SMS
               </Button>
             </DialogTrigger>
             <DialogContent>

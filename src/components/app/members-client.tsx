@@ -231,9 +231,12 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Members</h1>
-        <div className="flex gap-2">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Members</h1>
+            <p className="text-muted-foreground">Manage your group's members and their details.</p>
+        </div>
+        <div className="flex shrink-0 gap-2">
           <Button variant="outline" onClick={handleDownloadTemplate}>
             <Download className="mr-2 h-4 w-4" /> Download Template
           </Button>
