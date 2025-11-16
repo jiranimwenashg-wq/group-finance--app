@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
+import Papa from "papaparse";
 import {
   Table,
   TableBody,
@@ -20,12 +21,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import { Bot, PlusCircle } from "lucide-react";
+import { Bot, Download, PlusCircle, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   parseMpesaSms,
@@ -54,6 +54,7 @@ export default function TransactionsClient({
   const [isParsing, setIsParsing] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [filter, setFilter] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const filteredTransactions = useMemo(() => {
@@ -63,7 +64,7 @@ export default function TransactionsClient({
       const memberNameMatch = transaction.memberName?.toLowerCase().includes(searchTerm);
       const categoryMatch = transaction.category.toLowerCase().includes(searchTerm);
       return descriptionMatch || (memberNameMatch ?? false) || categoryMatch;
-    });
+    }).sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [transactions, filter]);
 
   const handleParseSms = async () => {
@@ -107,6 +108,89 @@ export default function TransactionsClient({
     }
   };
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleDownloadTemplate = () => {
+    const headers = ["date", "description", "amount", "type", "category", "memberName"];
+    const csvContent = headers.join(",");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "transactions_template.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "text/csv") {
+      toast({
+        variant: "destructive",
+        title: "Invalid File Type",
+        description: "Please upload a .csv file.",
+      });
+      return;
+    }
+
+    Papa.parse<Record<string, string>>(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const requiredHeaders = ["date", "description", "amount", "type", "category"];
+        const headers = results.meta.fields || [];
+        const missingHeaders = requiredHeaders.filter(
+          (h) => !headers.includes(h)
+        );
+
+        if (missingHeaders.length > 0) {
+          toast({
+            variant: "destructive",
+            title: "Invalid CSV format",
+            description: `Missing required columns: ${missingHeaders.join(", ")}`,
+          });
+          return;
+        }
+
+        const newTransactions: Transaction[] = results.data.map((row, index) => {
+          const member = row.memberName ? members.find(m => m.name.toLowerCase() === row.memberName!.toLowerCase()) : undefined;
+          return {
+            id: `TRN${Date.now()}${index}`,
+            date: new Date(row.date),
+            description: row.description,
+            amount: parseFloat(row.amount),
+            type: row.type as 'Income' | 'Expense',
+            category: row.category as 'Contribution' | 'Late Fee' | 'Project' | 'Social Fund' | 'Operational',
+            memberId: member?.id,
+            memberName: member?.name,
+          };
+        });
+
+        setTransactions((prev) => [...prev, ...newTransactions]);
+        toast({
+          title: "Import Successful",
+          description: `${newTransactions.length} transactions have been added.`,
+        });
+      },
+      error: (error) => {
+        toast({
+          variant: "destructive",
+          title: "CSV Parsing Error",
+          description: error.message,
+        });
+      },
+    });
+
+    event.target.value = "";
+  };
+
+
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -118,6 +202,19 @@ export default function TransactionsClient({
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Transactions</h1>
         <div className="flex gap-2">
+           <Button variant="outline" onClick={handleDownloadTemplate}>
+            <Download className="mr-2 h-4 w-4" /> Template
+          </Button>
+          <Button variant="outline" onClick={handleImportClick}>
+            <Upload className="mr-2 h-4 w-4" /> Import CSV
+          </Button>
+           <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept=".csv"
+            className="hidden"
+          />
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline">
@@ -277,3 +374,5 @@ export default function TransactionsClient({
     </div>
   );
 }
+
+    
