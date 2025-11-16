@@ -14,6 +14,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'FinanceFlow AI',
   description: "The effortless way to manage your community group's finances.",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
