@@ -90,7 +90,7 @@ export default function LandingPage() {
             <div className="flex flex-col justify-center gap-4">
                <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
                 Manage Your Group Finances,{' '}
-                <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-primary to-accent-foreground bg-clip-text text-transparent">
                   Effortlessly
                 </span>
               </h1>
@@ -139,7 +139,7 @@ export default function LandingPage() {
               {features.map((feature) => (
                 <Card
                   key={feature.title}
-                  className="flex flex-col border-white/20 bg-card/60 backdrop-blur-lg"
+                  className="flex flex-col border-white/20 bg-card/60 backdrop-blur-sm"
                 >
                   <CardHeader className="items-center">{feature.icon}</CardHeader>
                   <CardContent className="flex flex-1 flex-col items-center text-center">

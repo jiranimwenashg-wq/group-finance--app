@@ -28,7 +28,7 @@ export default function DashboardLayout({
     if (!isUserLoading && !user) {
       router.push('/login');
     }
-  }, [user, isUserLoading]);
+  }, [user, isUserLoading, router]);
 
   if (isUserLoading || !user) {
     return (
@@ -54,7 +54,7 @@ export default function DashboardLayout({
       </Sidebar>
       <SidebarInset>
         <Header />
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="flex-1 overflow-auto p-6 md:p-8">
           {children}
         </main>
       </SidebarInset>
