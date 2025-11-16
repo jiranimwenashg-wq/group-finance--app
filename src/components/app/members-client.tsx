@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import Papa from 'papaparse';
 import {
   Table,
@@ -36,6 +36,7 @@ import {
   FormMessage,
 } from '../ui/form';
 import { Input } from '../ui/input';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
 
 type MembersClientProps = {
   initialMembers: Member[];
@@ -124,8 +125,15 @@ function AddMemberDialog({
 
 export default function MembersClient({ initialMembers }: MembersClientProps) {
   const [members, setMembers] = useState(initialMembers);
+  const [filter, setFilter] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const filteredMembers = useMemo(() => {
+    return members.filter(member => 
+      member.name.toLowerCase().includes(filter.toLowerCase())
+    );
+  }, [members, filter]);
 
   const handleAddMember = (
     newMemberData: Omit<Member, 'id' | 'joinDate' | 'status'>
@@ -242,45 +250,61 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
           <AddMemberDialog onAddMember={handleAddMember} />
         </div>
       </div>
-      <div className="rounded-lg border shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Join Date</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {members.map((member) => (
-              <TableRow key={member.id}>
-                <TableCell className="font-medium">{member.name}</TableCell>
-                <TableCell>
-                  <div className="flex flex-col">
-                    <span className="text-sm">{member.phone}</span>
-                  </div>
-                </TableCell>
-                <TableCell>{member.joinDate.toLocaleDateString()}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      member.status === 'Active' ? 'default' : 'outline'
-                    }
-                    className={
-                      member.status === 'Active'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                        : ''
-                    }
-                  >
-                    {member.status}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Member List</CardTitle>
+          <CardDescription>
+            Search for members by their name.
+          </CardDescription>
+          <Input 
+            placeholder="Filter members by name..."
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="mt-4 max-w-sm"
+          />
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Join Date</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMembers.map((member) => (
+                  <TableRow key={member.id} id={member.name.replace(/\s+/g, '-')}>
+                    <TableCell className="font-medium">{member.name}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="text-sm">{member.phone}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{member.joinDate.toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          member.status === 'Active' ? 'default' : 'outline'
+                        }
+                        className={
+                          member.status === 'Active'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                            : ''
+                        }
+                      >
+                        {member.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

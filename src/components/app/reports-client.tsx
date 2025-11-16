@@ -10,6 +10,7 @@ import { Loader2, User } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import Link from 'next/link';
+import { Input } from '../ui/input';
 
 interface MemberReportCardProps {
   member: Member;
@@ -123,12 +124,24 @@ interface ReportsClientProps {
 }
 
 export default function ReportsClient({ members, transactions, insurancePayments, policies }: ReportsClientProps) {
-  const activeMembers = useMemo(() => members.filter((m) => m.status === 'Active'), [members]);
+  const [filter, setFilter] = useState('');
+  
+  const activeMembers = useMemo(() => {
+    return members
+      .filter((m) => m.status === 'Active')
+      .filter(m => m.name.toLowerCase().includes(filter.toLowerCase()));
+  }, [members, filter]);
 
   return (
     <div className="space-y-4">
-       <div className="flex items-center justify-between">
+       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Member Reports</h1>
+        <Input 
+            placeholder="Filter members by name..."
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="max-w-sm"
+          />
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {activeMembers.map((member) => (
