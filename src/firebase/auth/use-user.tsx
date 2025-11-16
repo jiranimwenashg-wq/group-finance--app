@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -44,7 +45,6 @@ export const useUser = (): UserHookResult => {
         }
       },
       (error) => {
-        console.error('useUser: onAuthStateChanged error:', error);
         setUser(null);
         setIsUserLoading(false);
         setUserError(error);

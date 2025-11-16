@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
@@ -448,7 +449,6 @@ export default function TransactionsClient() {
         description: toastDescription,
       });
     } catch (error) {
-      console.error('Failed to parse SMS:', error);
       toast({
         variant: 'destructive',
         title: 'Parsing Failed',

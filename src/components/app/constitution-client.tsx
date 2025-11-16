@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef } from "react";
@@ -46,7 +47,6 @@ export default function ConstitutionClient() {
       const aiMessage: Message = { role: "ai", content: result.answer };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error("Failed to query constitution:", error);
       const errorMessage: Message = {
         role: "ai",
         content: "Sorry, I encountered an error. Please try again.",

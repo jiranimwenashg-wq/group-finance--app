@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -61,7 +62,6 @@ function MemberReportCard({ member, transactions, insurancePayments, policies }:
       const result = await generateMemberReport(input);
       setReport(result.report);
     } catch (error) {
-      console.error('Failed to generate report for', member.name, error);
       setReport('Could not generate a report at this time.');
     } finally {
       setIsLoading(false);

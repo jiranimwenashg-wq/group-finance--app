@@ -85,7 +85,6 @@ function AiEventCreator({
       onEventParsed(result);
       setPrompt("");
     } catch (error) {
-      console.error("Failed to parse event:", error);
       toast({
         variant: "destructive",
         title: "AI Error",
@@ -555,5 +554,3 @@ export default function CalendarClient() {
     </div>
   );
 }
-
-    
