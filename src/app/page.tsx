@@ -11,7 +11,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
 import { placeholderImages } from '@/lib/placeholder-images';
 
@@ -64,11 +64,11 @@ export default function LandingPage() {
   const heroImage = placeholderImages.find(p => p.id === 'hero')!;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 items-center">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Icons.logo className="size-6" />
+            <Icons.logo className="size-6 text-primary" />
             <span className="font-bold">FinanceFlow AI</span>
           </Link>
           <div className="flex flex-1 items-center justify-end space-x-4">
@@ -88,9 +88,11 @@ export default function LandingPage() {
         <section className="container grid items-center gap-6 pb-8 pt-6 md:py-10">
           <div className="relative grid gap-10 lg:grid-cols-2">
             <div className="flex flex-col justify-center gap-4">
-              <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
+               <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
                 Manage Your Group Finances,{' '}
-                <span className="text-primary">Effortlessly</span>
+                <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  Effortlessly
+                </span>
               </h1>
               <p className="max-w-lg text-lg text-muted-foreground">
                 Welcome to FinanceFlow AI, the ultimate tool for community
@@ -121,7 +123,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="features" className="bg-secondary py-16">
+        <section id="features" className="bg-secondary/50 py-16">
           <div className="container">
             <div className="mx-auto mb-12 max-w-2xl text-center">
               <h2 className="text-3xl font-bold tracking-tight">
@@ -133,7 +135,10 @@ export default function LandingPage() {
             </div>
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               {features.map((feature) => (
-                <Card key={feature.title} className="flex flex-col">
+                <Card
+                  key={feature.title}
+                  className="flex flex-col border-white/20 bg-card/60 backdrop-blur-lg"
+                >
                   <CardHeader className="items-center">{feature.icon}</CardHeader>
                   <CardContent className="flex flex-1 flex-col items-center text-center">
                     <h3 className="mb-2 text-xl font-semibold">
@@ -163,7 +168,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t bg-secondary">
+      <footer className="border-t border-border/40 bg-secondary/50">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <Icons.logo className="size-5" />
