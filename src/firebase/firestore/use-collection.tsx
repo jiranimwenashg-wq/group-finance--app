@@ -74,13 +74,12 @@ export function useCollection<T = any>(
       },
       (error: FirestoreError) => {
         let path: string;
-        if (memoizedTargetRefOrQuery.type === 'collection') {
-            path = (memoizedTargetRefOrQuery as CollectionReference).path;
+        if ('path' in memoizedTargetRefOrQuery) {
+          path = (memoizedTargetRefOrQuery as CollectionReference).path;
         } else {
-            // For queries, we can get the path from the first document in the error metadata, or fall back.
-            // This part is less straightforward without internal access, but we can make a best effort.
-            // A more robust solution might involve passing the path as a separate argument if complex queries are common.
-            path = (memoizedTargetRefOrQuery as Query)._query.path.segments.join('/');
+          // Fallback for queries - this is a simplification and might not cover all edge cases
+          // for very complex queries, but works for simple collection queries.
+          path = (memoizedTargetRefOrQuery as Query)._query.path.segments.join('/');
         }
         
         const contextualError = new FirestorePermissionError({
@@ -100,7 +99,7 @@ export function useCollection<T = any>(
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
+    throw new Error('useCollection target was not properly memoized using useMemoFirebase');
   }
   return { data, isLoading, error };
 }
