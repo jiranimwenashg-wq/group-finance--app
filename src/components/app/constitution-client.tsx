@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { queryConstitution } from "@/ai/flows/query-constitution";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { placeholderImages } from "@/lib/placeholder-images";
+import { useUser } from "@/firebase";
 
 type Message = {
   role: "user" | "ai";
@@ -24,6 +24,7 @@ export default function ConstitutionClient() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useUser();
 
 
   const handleQuery = async () => {
@@ -85,7 +86,7 @@ export default function ConstitutionClient() {
       setConstitutionText(text);
       toast({
         title: "File Imported",
-        description: "The constitution has been loaded from the file.",
+        description: "The constitution has been loaded from the file. Don't forget to save.",
       });
     };
     reader.onerror = () => {
@@ -99,9 +100,6 @@ export default function ConstitutionClient() {
     // Reset file input to allow re-uploading the same file
     event.target.value = '';
   };
-
-
-  const userAvatar = placeholderImages.find(p => p.id === 'avatar-1');
 
   return (
     <div className="grid h-full grid-cols-1 gap-4 lg:grid-cols-3">
@@ -120,7 +118,7 @@ export default function ConstitutionClient() {
             onChange={(e) => setConstitutionText(e.target.value)}
           />
         </CardContent>
-        <CardFooter className="flex-col space-y-2">
+        <CardFooter className="flex-col items-start gap-2">
             <Button className="w-full" onClick={() => toast({ title: "Constitution Saved!", description: "The AI assistant will now use this document."})}>Save Constitution</Button>
             <Button variant="outline" className="w-full" onClick={handleImportClick}>
               <Upload className="mr-2 h-4 w-4" />
@@ -158,7 +156,7 @@ export default function ConstitutionClient() {
             >
               {message.role === "ai" && (
                 <Avatar className="size-8">
-                  <AvatarFallback><Bot className="size-5" /></AvatarFallback>
+                   <AvatarFallback><Bot className="size-5" /></AvatarFallback>
                 </Avatar>
               )}
               <div
@@ -170,9 +168,9 @@ export default function ConstitutionClient() {
               >
                 <p className="text-sm">{message.content}</p>
               </div>
-               {message.role === "user" && userAvatar && (
+               {message.role === "user" && (
                 <Avatar className="size-8">
-                  <AvatarImage src={userAvatar.imageUrl} alt="User" data-ai-hint={userAvatar.imageHint} />
+                  <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'User'}/>
                   <AvatarFallback><User className="size-5" /></AvatarFallback>
                 </Avatar>
               )}
@@ -196,6 +194,7 @@ export default function ConstitutionClient() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleQuery()}
+                disabled={isLoading}
             />
             <Button
                 size="icon"
