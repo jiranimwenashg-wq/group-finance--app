@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 
 type TransactionsClientProps = {
   initialTransactions: Transaction[];
@@ -52,7 +53,18 @@ export default function TransactionsClient({
   const [smsText, setSmsText] = useState("");
   const [isParsing, setIsParsing] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [filter, setFilter] = useState('');
   const { toast } = useToast();
+
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(transaction => {
+      const searchTerm = filter.toLowerCase();
+      const descriptionMatch = transaction.description.toLowerCase().includes(searchTerm);
+      const memberNameMatch = transaction.memberName?.toLowerCase().includes(searchTerm);
+      const categoryMatch = transaction.category.toLowerCase().includes(searchTerm);
+      return descriptionMatch || !!memberNameMatch && memberNameMatch || categoryMatch;
+    });
+  }, [transactions, filter]);
 
   const handleParseSms = async () => {
     if (!smsText.trim()) {
@@ -193,59 +205,75 @@ export default function TransactionsClient({
           </Dialog>
         </div>
       </div>
-      <div className="rounded-lg border shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Member</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transactions.map((transaction) => (
-              <TableRow key={transaction.id}>
-                <TableCell>
-                  {transaction.date.toLocaleDateString()}
-                </TableCell>
-                <TableCell>{transaction.memberName || "N/A"}</TableCell>
-                <TableCell className="font-medium">
-                  {transaction.description}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{transaction.category}</Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      transaction.type === "Income" ? "outline" : "destructive"
-                    }
-                    className={
-                      transaction.type === "Income"
-                        ? "border-green-500 text-green-500"
-                        : ""
-                    }
-                  >
-                    {transaction.type}
-                  </Badge>
-                </TableCell>
-                <TableCell
-                  className={`text-right font-semibold ${
-                    transaction.type === "Income"
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {formatCurrency(transaction.amount)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Transaction History</CardTitle>
+          <CardDescription>
+            Search for transactions by description, member name, or category.
+          </CardDescription>
+          <Input 
+            placeholder="Filter transactions..."
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="mt-4 max-w-sm"
+          />
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Member</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTransactions.map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell>
+                      {transaction.date.toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{transaction.memberName || "N/A"}</TableCell>
+                    <TableCell className="font-medium">
+                      {transaction.description}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{transaction.category}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          transaction.type === "Income" ? "outline" : "destructive"
+                        }
+                        className={
+                          transaction.type === "Income"
+                            ? "border-green-500 text-green-500"
+                            : ""
+                        }
+                      >
+                        {transaction.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell
+                      className={`text-right font-semibold ${
+                        transaction.type === "Income"
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {formatCurrency(transaction.amount)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
