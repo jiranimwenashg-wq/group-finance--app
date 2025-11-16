@@ -43,6 +43,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Input } from "../ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { ScrollArea } from "../ui/scroll-area";
 
 type TransactionsClientProps = {
   initialTransactions: Transaction[];
@@ -205,57 +206,59 @@ function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
 
   return (
     <div className="rounded-lg border shadow-sm">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Member</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transactions.map((transaction) => (
-            <TableRow key={transaction.id}>
-              <TableCell>
-                {transaction.date.toLocaleDateString()}
-              </TableCell>
-              <TableCell>{transaction.memberName || "N/A"}</TableCell>
-              <TableCell className="font-medium">
-                {transaction.description}
-              </TableCell>
-              <TableCell>
-                <Badge variant="secondary">{transaction.category}</Badge>
-              </TableCell>
-              <TableCell>
-                <Badge
-                  variant={
-                    transaction.type === "Income" ? "outline" : "destructive"
-                  }
-                  className={
-                    transaction.type === "Income"
-                      ? "border-green-500 text-green-500"
-                      : ""
-                  }
-                >
-                  {transaction.type}
-                </Badge>
-              </TableCell>
-              <TableCell
-                className={`text-right font-semibold ${
-                  transaction.type === "Income"
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                {formatCurrency(transaction.amount)}
-              </TableCell>
+      <ScrollArea className="w-full whitespace-nowrap">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Member</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {transactions.map((transaction) => (
+              <TableRow key={transaction.id}>
+                <TableCell>
+                  {transaction.date.toLocaleDateString()}
+                </TableCell>
+                <TableCell>{transaction.memberName || "N/A"}</TableCell>
+                <TableCell className="font-medium">
+                  {transaction.description}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="secondary">{transaction.category}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      transaction.type === "Income" ? "outline" : "destructive"
+                    }
+                    className={
+                      transaction.type === "Income"
+                        ? "border-green-500 text-green-500"
+                        : ""
+                    }
+                  >
+                    {transaction.type}
+                  </Badge>
+                </TableCell>
+                <TableCell
+                  className={`text-right font-semibold ${
+                    transaction.type === "Income"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {formatCurrency(transaction.amount)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </ScrollArea>
     </div>
   );
 }
@@ -439,7 +442,7 @@ export default function TransactionsClient({
             <h1 className="text-3xl font-bold tracking-tight">Transactions</h1>
             <p className="text-muted-foreground">Track all income and expenses for your group.</p>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex flex-wrap shrink-0 gap-2">
            <Button variant="outline" onClick={handleDownloadTemplate}>
             <Download className="mr-2 h-4 w-4" /> Template
           </Button>

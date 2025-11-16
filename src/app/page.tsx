@@ -86,7 +86,7 @@ export default function LandingPage() {
 
       <main className="flex-1">
         <section className="container grid items-center gap-6 pb-8 pt-6 md:py-10">
-          <div className="relative grid gap-10 lg:grid-cols-2">
+          <div className="relative grid gap-10 md:grid-cols-2">
             <div className="flex flex-col justify-center gap-4">
                <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
                 Manage Your Group Finances,{' '}
@@ -100,7 +100,7 @@ export default function LandingPage() {
                 AI-powered insights so you can focus on what truly matters—your
                 group's goals.
               </p>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4">
                 <Button size="lg" asChild>
                   <Link href="/dashboard">Go to Dashboard</Link>
                 </Button>
@@ -109,7 +109,7 @@ export default function LandingPage() {
                 </Button>
               </div>
             </div>
-            <div className="relative hidden h-[24rem] overflow-hidden rounded-lg border shadow-lg lg:block">
+            <div className="relative h-72 overflow-hidden rounded-lg border shadow-lg md:h-96">
               <Image
                 src={heroImage.imageUrl}
                 alt={heroImage.description}
