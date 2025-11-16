@@ -34,7 +34,7 @@ import Link from 'next/link';
 import { Suspense, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { GROUP_ID, type Group } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -215,6 +215,28 @@ function ProjectSettingsCard() {
   );
 }
 
+function SettingsContent() {
+    const { user, isUserLoading } = useUser();
+
+    if (isUserLoading) {
+        return (
+             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Skeleton className="h-[400px]" />
+                <Skeleton className="h-[250px]" />
+                <Skeleton className="h-[250px]" />
+            </div>
+        )
+    }
+
+    return (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <GroupProfileCard />
+            <AppearanceCard />
+            <ProjectSettingsCard />
+        </div>
+    )
+}
+
 export default function SettingsPage() {
   return (
     <div className="space-y-4">
@@ -222,17 +244,15 @@ export default function SettingsPage() {
             <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
             <p className="text-muted-foreground">Manage your group, appearance, and project settings.</p>
         </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Suspense fallback={null}>
-          <GroupProfileCard />
+        <Suspense fallback={
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Skeleton className="h-[400px]" />
+                <Skeleton className="h-[250px]" />
+                <Skeleton className="h-[250px]" />
+            </div>
+        }>
+            <SettingsContent />
         </Suspense>
-        <Suspense fallback={null}>
-          <AppearanceCard />
-        </Suspense>
-        <Suspense fallback={null}>
-          <ProjectSettingsCard />
-        </Suspense>
-      </div>
     </div>
   );
 }
