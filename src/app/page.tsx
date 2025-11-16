@@ -21,47 +21,47 @@ const features = [
     title: 'Instant Financial Dashboard',
     description:
       "Get a real-time snapshot of your group's financial health. Track income, monitor expenses, and visualize progress with beautiful charts.",
-    image: placeholderImages.find(p => p.id === 'dashboard')!,
+    image: placeholderImages.find(p => p.id === 'dashboard'),
   },
   {
     icon: <Bot className="size-8 text-primary" />,
     title: 'AI-Powered Bookkeeping',
     description:
       'Say goodbye to manual data entry. Paste an M-Pesa SMS and our AI instantly parses it into a structured, categorized transaction record.',
-    image: placeholderImages.find(p => p.id === 'ai-parser')!,
+    image: placeholderImages.find(p => p.id === 'ai-parser'),
   },
   {
     icon: <Users className="size-8 text-primary" />,
     title: 'Easy Member Management',
     description:
       'Keep your member list organized and up-to-date. Add new members individually or import your entire list in seconds with our simple CSV tool.',
-    image: placeholderImages.find(p => p.id === 'members')!,
+    image: placeholderImages.find(p => p.id === 'members'),
   },
   {
     icon: <Wallet className="size-8 text-primary" />,
     title: 'Insurance Premium Tracking',
     description:
       'Create custom policies and tick off payments month by month, ensuring every member is covered and accounted for with our powerful tracking grid.',
-    image: placeholderImages.find(p => p.id === 'insurance')!,
+    image: placeholderImages.find(p => p.id === 'insurance'),
   },
   {
     icon: <FileText className="size-8 text-primary" />,
     title: 'AI Constitution Assistant',
     description:
       "Need to check a rule? Ask questions about your group's constitution in plain English and get instant, accurate answers from our AI.",
-    image: placeholderImages.find(p => p.id === 'constitution')!,
+    image: placeholderImages.find(p => p.id === 'constitution'),
   },
   {
     icon: <CircleDollarSign className="size-8 text-primary" />,
     title: 'Automated Chama Schedule',
     description:
       'Generate a fair, randomized "merry-go-round" savings schedule with a single click, ensuring transparency and equal opportunity for all members.',
-    image: placeholderImages.find(p => p.id === 'schedule')!,
+    image: placeholderImages.find(p => p.id === 'schedule'),
   },
 ];
 
 export default function LandingPage() {
-  const heroImage = placeholderImages.find(p => p.id === 'hero')!;
+  const heroImage = placeholderImages.find(p => p.id === 'hero');
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -109,17 +109,19 @@ export default function LandingPage() {
                 </Button>
               </div>
             </div>
-            <div className="relative h-72 overflow-hidden rounded-lg border shadow-lg md:h-96">
-              <Image
-                src={heroImage.imageUrl}
-                alt={heroImage.description}
-                fill
-                className="object-cover"
-                data-ai-hint={heroImage.imageHint}
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent" />
-            </div>
+            {heroImage && (
+              <div className="relative h-72 overflow-hidden rounded-lg border shadow-lg md:h-96">
+                <Image
+                  src={heroImage.imageUrl}
+                  alt={heroImage.description}
+                  fill
+                  className="object-cover"
+                  data-ai-hint={heroImage.imageHint}
+                  priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent" />
+              </div>
+            )}
           </div>
         </section>
 

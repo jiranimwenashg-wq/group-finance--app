@@ -78,12 +78,16 @@ function MemberReportCard({ member, transactions, insurancePayments, policies }:
   return (
     <Card className="transition-all hover:shadow-md">
       <CardHeader className="flex flex-row items-center gap-4">
-        <Avatar>
-            {userAvatar ? (
+        {userAvatar ? (
+            <Avatar>
                 <AvatarImage src={userAvatar.imageUrl} alt={member.name} data-ai-hint={userAvatar.imageHint} />
-            ) : null}
-            <AvatarFallback><User /></AvatarFallback>
-        </Avatar>
+                <AvatarFallback><User /></AvatarFallback>
+            </Avatar>
+        ) : (
+            <Avatar>
+                <AvatarFallback><User /></AvatarFallback>
+            </Avatar>
+        )}
         <div className="flex-1">
           <CardTitle>{member.name}</CardTitle>
           <CardDescription>

@@ -21,7 +21,7 @@ import { useAuth, useUser } from '@/firebase';
 import { Skeleton } from '../ui/skeleton';
 
 export function UserNav() {
-  const userAvatar = placeholderImages.find((p) => p.id === 'avatar-1')!;
+  const userAvatar = placeholderImages.find((p) => p.id === 'avatar-1');
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
 
@@ -47,9 +47,9 @@ export function UserNav() {
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
             <AvatarImage
-              src={user.photoURL || userAvatar.imageUrl}
+              src={user.photoURL || userAvatar?.imageUrl}
               alt="User avatar"
-              data-ai-hint={userAvatar.imageHint}
+              data-ai-hint={userAvatar?.imageHint}
             />
             <AvatarFallback>{user.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>
