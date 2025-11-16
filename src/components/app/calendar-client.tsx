@@ -178,7 +178,7 @@ export default function CalendarClient() {
     let currentDate = startDate;
     const limitDate = endDate;
 
-    const maxIterations = count || (limitDate ? 500 : 1); // Safety break
+    const maxIterations = count || (limitDate ? 500 : 52); // Safety break
 
     for (let i = 0; i < maxIterations; i++) {
         if (limitDate && currentDate > limitDate) break;
@@ -319,6 +319,7 @@ export default function CalendarClient() {
                         Fill in the details for the new group event.
                     </DialogDescription>
                 </DialogHeader>
+                <ScrollArea className="max-h-[70vh] pr-6">
                  <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField
@@ -481,11 +482,12 @@ export default function CalendarClient() {
                         )}
 
 
-                         <DialogFooter>
+                         <DialogFooter className="sticky bottom-0 bg-background py-4">
                             <Button type="submit">Save Event</Button>
                         </DialogFooter>
                     </form>
                 </Form>
+                </ScrollArea>
             </DialogContent>
         </Dialog>
       </div>
@@ -550,5 +552,3 @@ export default function CalendarClient() {
     </div>
   );
 }
-
-    
