@@ -24,8 +24,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { Input } from '../ui/input';
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { collection, doc, where, query } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
 
@@ -85,13 +85,15 @@ export default function InsuranceClient({
     if (!firestore) return null;
     return collection(firestore, 'groups', GROUP_ID, 'members');
   }, [firestore]);
-
-  const paymentsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'groups', GROUP_ID, 'insurancePayments');
-  }, [firestore]);
   
   const {data: members, isLoading: isLoadingMembers} = useCollection<Member>(membersQuery);
+
+  const paymentsQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedPolicyId) return null;
+    const paymentsCollection = collection(firestore, 'groups', GROUP_ID, 'insurancePolicies', selectedPolicyId, 'payments');
+    return query(paymentsCollection);
+  }, [firestore, selectedPolicyId]);
+
   const {data: payments, isLoading: isLoadingPayments} = useCollection<InsurancePayment>(paymentsQuery);
   
   const activeMembers = useMemo(
@@ -111,40 +113,63 @@ export default function InsuranceClient({
       Array.from({ length: 12 }, (_, i) => new Date(selectedYear, i, 1)),
     [selectedYear]
   );
-
-  const filteredPayments = useMemo(
-    () => payments?.filter(p => p.policyId === selectedPolicyId) || [],
-    [payments, selectedPolicyId]
-  );
-
+  
   const handlePaymentChange = (
-    payment: InsurancePayment,
+    memberId: string,
     month: string,
     checked: boolean
   ) => {
-    if(!firestore) return;
-    const paymentRef = doc(firestore, 'groups', GROUP_ID, 'insurancePayments', payment.id);
+    if(!firestore || !selectedPolicyId) return;
 
-    const newPayments = { ...payment.payments };
-    newPayments[month] = checked ? 'Paid' : 'Unpaid';
+    const payment = payments?.find(p => p.memberId === memberId);
     
-    setDocumentNonBlocking(paymentRef, { payments: newPayments }, { merge: true });
+    if (payment) {
+        const paymentRef = doc(firestore, 'groups', GROUP_ID, 'insurancePolicies', selectedPolicyId, 'payments', payment.id);
+        const newPayments = { ...payment.payments };
+        newPayments[month] = checked ? 'Paid' : 'Unpaid';
+        setDocumentNonBlocking(paymentRef, { payments: newPayments }, { merge: true });
+    } else {
+        const paymentsRef = collection(firestore, 'groups', GROUP_ID, 'insurancePolicies', selectedPolicyId, 'payments');
+        const newPayment: Omit<InsurancePayment, 'id'> = {
+            memberId,
+            policyId: selectedPolicy.id,
+            groupId: GROUP_ID,
+            payments: {
+                [month]: checked ? 'Paid' : 'Unpaid'
+            }
+        };
+        addDocumentNonBlocking(paymentsRef, newPayment);
+    }
   };
   
   const handleMarkMonthAsPaid = () => {
-     if(!firestore || !activeMembers || !payments) return;
+     if(!firestore || !activeMembers || !payments || !selectedPolicyId) return;
      const monthKey = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}`;
 
      activeMembers.forEach(member => {
-        const payment = payments.find(p => p.memberId === member.id && p.policyId === selectedPolicyId);
-        if (payment && payment.payments[monthKey] !== 'Waived') {
-            const paymentRef = doc(firestore, 'groups', GROUP_ID, 'insurancePayments', payment.id);
-            setDocumentNonBlocking(paymentRef, {
+        const payment = payments.find(p => p.memberId === member.id);
+        
+        if (payment) {
+            const paymentRef = doc(firestore, 'groups', GROUP_ID, 'insurancePolicies', selectedPolicyId, 'payments', payment.id);
+            if (payment.payments[monthKey] !== 'Waived') {
+                setDocumentNonBlocking(paymentRef, {
+                    payments: {
+                        ...payment.payments,
+                        [monthKey]: 'Paid',
+                    }
+                }, { merge: true });
+            }
+        } else {
+             const paymentsRef = collection(firestore, 'groups', GROUP_ID, 'insurancePolicies', selectedPolicyId, 'payments');
+             const newPayment: Omit<InsurancePayment, 'id'> = {
+                memberId: member.id,
+                policyId: selectedPolicy.id,
+                groupId: GROUP_ID,
                 payments: {
-                    ...payment.payments,
-                    [monthKey]: 'Paid',
+                    [monthKey]: 'Paid'
                 }
-            }, { merge: true });
+            };
+            addDocumentNonBlocking(paymentsRef, newPayment);
         }
     });
   };
@@ -157,7 +182,7 @@ export default function InsuranceClient({
     const totalPossible = allActiveMembers.length * selectedPolicy.monthlyPremium;
     let collected = 0;
 
-    payments?.filter(p => p.policyId === selectedPolicyId).forEach(p => {
+    payments?.forEach(p => {
       if (
         allActiveMembers.some(am => am.id === p.memberId) &&
         p.payments[monthKey] === 'Paid'
@@ -298,7 +323,7 @@ export default function InsuranceClient({
                 </TableHeader>
                 <TableBody>
                     {activeMembers.map(member => {
-                    const memberPayment = filteredPayments.find(
+                    const memberPayment = payments?.find(
                         p => p.memberId === member.id
                     );
 
@@ -351,12 +376,11 @@ export default function InsuranceClient({
 
                             return (
                             <TableCell key={monthKey} className="text-center">
-                                {memberPayment ? (
                                 <Checkbox
                                     checked={status === 'Paid'}
                                     onCheckedChange={checked =>
                                     handlePaymentChange(
-                                        memberPayment,
+                                        member.id,
                                         monthKey,
                                         !!checked
                                     )
@@ -367,9 +391,6 @@ export default function InsuranceClient({
                                     month: 'long',
                                     })}`}
                                 />
-                                ) : (
-                                <Badge variant="secondary">N/A</Badge>
-                                )}
                             </TableCell>
                             );
                         })}
@@ -391,3 +412,5 @@ export default function InsuranceClient({
     </div>
   );
 }
+
+    

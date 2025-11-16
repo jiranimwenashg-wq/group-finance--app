@@ -127,12 +127,27 @@
         "phone": {
           "type": "string",
           "description": "Phone number of the member."
+        },
+        "joinDate": {
+          "type": "string",
+          "description": "The date the member joined the group.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the member.",
+          "enum": [
+            "Active",
+            "Inactive"
+          ]
         }
       },
       "required": [
         "id",
         "groupId",
-        "name"
+        "name",
+        "joinDate",
+        "status"
       ]
     },
     "InsurancePolicy": {
@@ -179,26 +194,33 @@
           "type": "string",
           "description": "Reference to the Member making the payment. (Relationship: Member 1:N InsurancePayment)"
         },
-        "insurancePolicyId": {
+        "policyId": {
           "type": "string",
-          "description": "Reference to the InsurancePolicy being paid for. (Relationship: InsurancePolicy 1:N InsurancePayment)"
+          "description": "Reference to the InsurancePolicy being paid for."
         },
-        "paymentDate": {
+        "payments": {
+          "type": "object",
+          "description": "A map of monthly payment statuses (e.g., '2023-01': 'Paid').",
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "Paid",
+              "Unpaid",
+              "Waived"
+            ]
+          }
+        },
+        "groupId": {
           "type": "string",
-          "description": "Date the payment was made.",
-          "format": "date-time"
-        },
-        "amountPaid": {
-          "type": "number",
-          "description": "Amount paid towards the insurance policy."
+          "description": "Reference to the Group this payment belongs to."
         }
       },
       "required": [
         "id",
         "memberId",
-        "insurancePolicyId",
-        "paymentDate",
-        "amountPaid"
+        "policyId",
+        "payments",
+        "groupId"
       ]
     },
     "Constitution": {
@@ -361,30 +383,32 @@
               "description": "Unique identifier for the insurance policy."
             }
           ]
-        }
-      },
-      {
-        "path": "groups/{groupId}/members/{memberId}/insurancePayments/{insurancePaymentId}",
-        "definition": {
-          "entityName": "InsurancePayment",
-          "schema": {
-            "$ref": "#/backend/entities/InsurancePayment"
-          },
-          "description": "Represents a member's payment towards an insurance policy. Includes payment details like payment date and amount paid.",
-          "params": [
-            {
-              "name": "groupId",
-              "description": "Unique identifier for the group."
-            },
-            {
-              "name": "memberId",
-              "description": "Unique identifier for the member."
-            },
-            {
-              "name": "insurancePaymentId",
-              "description": "Unique identifier for the insurance payment."
+        },
+        "subcollections": {
+          "payments": {
+            "path": "groups/{groupId}/insurancePolicies/{insurancePolicyId}/payments/{paymentId}",
+            "definition": {
+              "entityName": "InsurancePayment",
+              "schema": {
+                "$ref": "#/backend/entities/InsurancePayment"
+              },
+              "description": "Represents a member's payment towards an insurance policy. Includes payment details like payment date and amount paid.",
+              "params": [
+                {
+                  "name": "groupId",
+                  "description": "Unique identifier for the group."
+                },
+                {
+                  "name": "insurancePolicyId",
+                  "description": "Unique identifier for the insurance policy."
+                },
+                {
+                  "name": "paymentId",
+                  "description": "Unique identifier for the insurance payment."
+                }
+              ]
             }
-          ]
+          }
         }
       },
       {
