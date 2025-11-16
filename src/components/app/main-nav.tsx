@@ -8,6 +8,7 @@ import {
   Settings,
   Users,
   Banknote,
+  FileCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -22,6 +23,7 @@ const links = [
   { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard /> },
   { href: "/dashboard/transactions", label: "Transactions", icon: <Banknote /> },
   { href: "/dashboard/members", label: "Members", icon: <Users /> },
+  { href: "/dashboard/reports", label: "Reports", icon: <FileCheck /> },
   { href: "/dashboard/insurance", label: "Insurance", icon: <HeartHandshake /> },
   { href: "/dashboard/schedule", label: "Schedule", icon: <CalendarClock /> },
   { href: "/dashboard/constitution", label: "Constitution AI", icon: <FileText /> },
