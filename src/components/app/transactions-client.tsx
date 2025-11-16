@@ -62,7 +62,7 @@ export default function TransactionsClient({
       const descriptionMatch = transaction.description.toLowerCase().includes(searchTerm);
       const memberNameMatch = transaction.memberName?.toLowerCase().includes(searchTerm);
       const categoryMatch = transaction.category.toLowerCase().includes(searchTerm);
-      return descriptionMatch || !!memberNameMatch && memberNameMatch || categoryMatch;
+      return descriptionMatch || (memberNameMatch ?? false) || categoryMatch;
     });
   }, [transactions, filter]);
 
