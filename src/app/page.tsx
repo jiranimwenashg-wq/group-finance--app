@@ -85,8 +85,8 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        <section className="container grid items-center gap-6 pb-8 pt-6 md:py-10">
-          <div className="relative grid gap-10 md:grid-cols-2">
+        <section className="container py-8 md:py-10">
+          <div className="relative grid gap-10 p-6 md:grid-cols-2 md:p-0">
             <div className="flex flex-col justify-center gap-4">
                <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
                 Manage Your Group Finances,{' '}
