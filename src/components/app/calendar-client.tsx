@@ -6,8 +6,8 @@ import { PlusCircle, Bell, Trash2, Bot, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
-import { createEventFromText } from "@/ai/flows/create-event-from-text";
+import { format, addDays, addWeeks, addMonths, addYears } from "date-fns";
+import { createEventFromText, type CreateEventFromTextOutput } from "@/ai/flows/create-event-from-text";
 
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,7 +61,7 @@ const getFirstSundayOfMonth = (year: number, month: number): Date => {
 function AiEventCreator({
   onEventParsed,
 }: {
-  onEventParsed: (data: { title: string; date: Date; description?: string }) => void;
+  onEventParsed: (data: Partial<CreateEventFromTextOutput>) => void;
 }) {
   const [prompt, setPrompt] = useState("");
   const [isParsing, setIsParsing] = useState(false);
@@ -72,16 +72,7 @@ function AiEventCreator({
     setIsParsing(true);
     try {
       const result = await createEventFromText({ prompt });
-      const eventDate = new Date(result.date);
-      // Adjust for timezone offset
-      const timezoneOffset = eventDate.getTimezoneOffset() * 60000;
-      const adjustedDate = new Date(eventDate.getTime() + timezoneOffset);
-
-      onEventParsed({
-        title: result.title,
-        date: adjustedDate,
-        description: result.description,
-      });
+      onEventParsed(result);
       setPrompt("");
     } catch (error) {
       console.error("Failed to parse event:", error);
@@ -103,8 +94,7 @@ function AiEventCreator({
           Create with AI
         </CardTitle>
         <CardDescription>
-          Describe the event you want to create, and AI will fill in the
-          details.
+          Describe an event, even repeating ones. e.g., "Weekly sync every Friday for 6 weeks"
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -158,9 +148,62 @@ export default function CalendarClient() {
     },
   });
   
-  const handleAiEventParsed = (data: { title: string; date: Date; description?: string }) => {
-    form.reset(data);
-    setIsAddDialogOpen(true);
+  const handleAiEventParsed = (data: Partial<CreateEventFromTextOutput>) => {
+    if (data.recurrence) {
+        const newEvents: Event[] = [];
+        const { recurrence, title, date, description } = data;
+        
+        let currentDate = new Date(date!);
+        // Adjust for timezone offset
+        const timezoneOffset = currentDate.getTimezoneOffset() * 60000;
+        currentDate = new Date(currentDate.getTime() + timezoneOffset);
+
+        const limitDate = recurrence.endDate ? new Date(recurrence.endDate) : null;
+        const count = recurrence.count || (limitDate ? Infinity : 1);
+
+        for (let i = 0; i < count; i++) {
+            if (limitDate && currentDate > limitDate) break;
+
+            newEvents.push({
+                id: `EVT${Date.now()}-${i}`,
+                title: title!,
+                date: currentDate,
+                description: description || '',
+            });
+
+            const interval = recurrence.interval || 1;
+            if (recurrence.frequency === 'daily') {
+                currentDate = addDays(currentDate, interval);
+            } else if (recurrence.frequency === 'weekly') {
+                currentDate = addWeeks(currentDate, interval);
+            } else if (recurrence.frequency === 'monthly') {
+                currentDate = addMonths(currentDate, interval);
+            } else if (recurrence.frequency === 'yearly') {
+                currentDate = addYears(currentDate, interval);
+            } else {
+                break;
+            }
+        }
+        
+        setEvents(prev => [...prev, ...newEvents].sort((a,b) => a.date.getTime() - b.date.getTime()));
+        toast({
+            title: "Recurring Events Created",
+            description: `${newEvents.length} instances of "${title}" have been added to the calendar.`,
+        });
+
+    } else if(data.title && data.date) {
+      const eventDate = new Date(data.date);
+      // Adjust for timezone offset
+      const timezoneOffset = eventDate.getTimezoneOffset() * 60000;
+      const adjustedDate = new Date(eventDate.getTime() + timezoneOffset);
+
+      form.reset({
+          title: data.title,
+          date: adjustedDate,
+          description: data.description || '',
+      });
+      setIsAddDialogOpen(true);
+    }
   };
 
   const onSubmit = (values: z.infer<typeof eventSchema>) => {
