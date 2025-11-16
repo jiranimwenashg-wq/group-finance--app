@@ -229,7 +229,8 @@ export default function InsuranceClient({
                 <Table>
                 <TableHeader>
                     <TableRow>
-                    <TableHead className="w-[150px]">Member</TableHead>
+                    <TableHead className="w-[200px]">Member</TableHead>
+                    <TableHead>Status</TableHead>
                     {months.map(month => (
                         <TableHead key={month.toISOString()} className="text-center">
                         {month.toLocaleString('default', { month: 'short' })}
@@ -263,6 +264,20 @@ export default function InsuranceClient({
                     return (
                         <TableRow key={member.id}>
                         <TableCell className="font-medium">{member.name}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              member.status === "Active" ? "default" : "outline"
+                            }
+                            className={
+                              member.status === "Active"
+                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                : ""
+                            }
+                          >
+                            {member.status}
+                          </Badge>
+                        </TableCell>
                         {months.map(month => {
                             const monthKey = `${selectedYear}-${(month.getMonth() + 1)
                             .toString()
