@@ -7,9 +7,11 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   FirebaseError,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 
 type ErrorCallback = (errorMessage: string) => void;
+type SuccessCallback = (successMessage: string) => void;
 
 function getAuthErrorMessage(error: any): string {
     if (error instanceof FirebaseError) {
@@ -92,6 +94,22 @@ export function initiateGoogleSignIn(
   signInWithPopup(authInstance, provider)
     .then(() => {
       // Success is handled by onAuthStateChanged listener.
+    })
+    .catch(error => {
+      onError(getAuthErrorMessage(error));
+    });
+}
+
+/** Initiate password reset email (non-blocking). */
+export function initiatePasswordReset(
+  authInstance: Auth,
+  email: string,
+  onSuccess: SuccessCallback,
+  onError: ErrorCallback
+): void {
+  sendPasswordResetEmail(authInstance, email)
+    .then(() => {
+      onSuccess(`A password reset link has been sent to ${email}.`);
     })
     .catch(error => {
       onError(getAuthErrorMessage(error));

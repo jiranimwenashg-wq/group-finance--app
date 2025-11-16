@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -18,6 +17,7 @@ import { initiateEmailSignUp, initiateGoogleSignIn } from '@/firebase/non-blocki
 import { useRedirectIfAuthenticated } from '@/hooks/use-redirect-if-authenticated';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
+import { Separator } from '@/components/ui/separator';
 
 export default function SignupPage() {
   useRedirectIfAuthenticated();
@@ -60,7 +60,7 @@ export default function SignupPage() {
         </Link>
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
             <Card>
-            <CardHeader className="space-y-1">
+            <CardHeader className="space-y-1 text-center">
                 <CardTitle className="text-xl">Create an Account</CardTitle>
                 <CardDescription>
                 Choose your preferred sign-up method
@@ -119,17 +119,18 @@ export default function SignupPage() {
                 </Button>
                 </form>
             </CardContent>
-            <CardFooter>
-                <p className="w-full text-center text-sm text-muted-foreground">
+            <Separator className="my-4" />
+            <div className="p-6 pt-0 text-center">
+              <p className="text-sm text-muted-foreground">
                 Already have an account?{' '}
                 <Link
-                    href="/login"
-                    className="underline underline-offset-4 hover:text-primary"
+                  href="/login"
+                  className="font-semibold text-primary underline-offset-4 hover:underline"
                 >
-                    Login
+                  Login
                 </Link>
-                </p>
-            </CardFooter>
+              </p>
+            </div>
             </Card>
         </div>
     </div>

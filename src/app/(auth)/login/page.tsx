@@ -6,19 +6,94 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useAuth } from '@/firebase';
-import { initiateEmailSignIn, initiateGoogleSignIn } from '@/firebase/non-blocking-login';
+import { initiateEmailSignIn, initiateGoogleSignIn, initiatePasswordReset } from '@/firebase/non-blocking-login';
 import { useRedirectIfAuthenticated } from '@/hooks/use-redirect-if-authenticated';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
+
+function ForgotPasswordDialog() {
+  const auth = useAuth();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+
+  const handlePasswordReset = () => {
+    if (!resetEmail) return;
+    initiatePasswordReset(
+      auth,
+      resetEmail,
+      (successMessage) => {
+        toast({
+          title: 'Email Sent',
+          description: successMessage,
+        });
+        setOpen(false); // Close dialog on success
+        setResetEmail('');
+      },
+      (error) => {
+        toast({
+          variant: 'destructive',
+          title: 'Reset Failed',
+          description: error,
+        });
+      }
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="link" size="sm" className="w-full justify-start p-0">
+          Forgot Password?
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Reset Password</DialogTitle>
+          <DialogDescription>
+            Enter your email address and we will send you a link to reset your
+            password.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="reset-email" className="text-right">
+              Email
+            </Label>
+            <Input
+              id="reset-email"
+              type="email"
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+              className="col-span-3"
+              placeholder="m@example.com"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={handlePasswordReset}>Send Reset Link</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function LoginPage() {
   useRedirectIfAuthenticated();
@@ -60,7 +135,7 @@ export default function LoginPage() {
       </Link>
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
         <Card>
-            <CardHeader className="space-y-1">
+            <CardHeader className="space-y-1 text-center">
                 <CardTitle className="text-xl">Welcome Back</CardTitle>
                 <CardDescription>
                 Choose your preferred sign-in method
@@ -94,7 +169,10 @@ export default function LoginPage() {
                     />
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="password">Password</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Password</Label>
+                      <ForgotPasswordDialog />
+                    </div>
                     <Input
                     id="password"
                     type="password"
@@ -108,17 +186,18 @@ export default function LoginPage() {
                 </Button>
                 </form>
             </CardContent>
-            <CardFooter className="flex-col !space-y-4 text-center">
-                <p className="text-sm text-muted-foreground">
+            <Separator className="my-4" />
+             <div className="p-6 pt-0 text-center">
+              <p className="text-sm text-muted-foreground">
                 Don&apos;t have an account?{' '}
                 <Link
-                    href="/signup"
-                    className="underline underline-offset-4 hover:text-primary"
+                  href="/signup"
+                  className="font-semibold text-primary underline-offset-4 hover:underline"
                 >
-                    Sign up
+                  Sign up
                 </Link>
-                </p>
-            </CardFooter>
+              </p>
+            </div>
         </Card>
       </div>
     </div>
