@@ -28,7 +28,7 @@ export default function DashboardLayout({
     if (!isUserLoading && !user) {
       router.push('/login');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading]);
 
   if (isUserLoading || !user) {
     return (
