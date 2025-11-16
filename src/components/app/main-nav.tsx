@@ -10,6 +10,7 @@ import {
   Banknote,
   FileCheck,
   Calendar,
+  HelpCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -37,6 +38,7 @@ const membershipLinks = [
 const toolsLinks = [
   { href: "/dashboard/calendar", label: "Calendar", icon: <Calendar /> },
   { href: "/dashboard/constitution", label: "Constitution AI", icon: <FileText /> },
+  { href: "/dashboard/help", label: "Help", icon: <HelpCircle /> },
 ];
 
 export function MainNav() {
