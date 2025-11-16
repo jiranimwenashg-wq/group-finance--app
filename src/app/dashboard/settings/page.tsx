@@ -1,5 +1,7 @@
-import { ThemeToggle } from "@/components/app/theme-toggle";
-import { Button } from "@/components/ui/button";
+'use client';
+
+import { ThemeToggle } from '@/components/app/theme-toggle';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -7,99 +9,159 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { firebaseConfig } from "@/firebase/config";
-import { ExternalLink } from "lucide-react";
-import Link from "next/link";
-import { Suspense } from "react";
+} from '@/components/ui/select';
+import { firebaseConfig } from '@/firebase/config';
+import { useToast } from '@/hooks/use-toast';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+import { Suspense } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+const groupProfileSchema = z.object({
+  groupName: z.string().min(1, 'Group name is required'),
+  currency: z.string(),
+});
 
 function GroupProfileCard() {
-    return (
-        <Card className="lg:col-span-1">
-        <CardHeader>
-          <CardTitle>Group Profile</CardTitle>
-          <CardDescription>
-            Update your group's name and currency.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="group-name">Group Name</Label>
-            <Input id="group-name" defaultValue="Finance Club" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="currency">Currency</Label>
-            <Select defaultValue="KES">
-              <SelectTrigger id="currency">
-                <SelectValue placeholder="Select currency" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
-                <SelectItem value="USD">USD - US Dollar</SelectItem>
-                <SelectItem value="EUR">EUR - Euro</SelectItem>
-                <SelectItem value="GBP">GBP - British Pound</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button>Save Changes</Button>
-        </CardFooter>
-      </Card>
-    )
+  const { toast } = useToast();
+  const form = useForm<z.infer<typeof groupProfileSchema>>({
+    resolver: zodResolver(groupProfileSchema),
+    defaultValues: {
+      groupName: 'Finance Club',
+      currency: 'KES',
+    },
+  });
+
+  const onSubmit = (values: z.infer<typeof groupProfileSchema>) => {
+    console.log(values);
+    toast({
+      title: 'Changes Saved',
+      description: 'Your group profile has been updated.',
+    });
+  };
+
+  return (
+    <Card className="lg:col-span-1">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardHeader>
+            <CardTitle>Group Profile</CardTitle>
+            <CardDescription>
+              Update your group's name and currency.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control}
+              name="groupName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Group Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="currency"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Currency</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select currency" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
+                      <SelectItem value="USD">USD - US Dollar</SelectItem>
+                      <SelectItem value="EUR">EUR - Euro</SelectItem>
+                      <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+          <CardFooter>
+            <Button type="submit">Save Changes</Button>
+          </CardFooter>
+        </form>
+      </Form>
+    </Card>
+  );
 }
 
 function AppearanceCard() {
-    return (
-        <Card className="lg:col-span-1">
-            <CardHeader>
-            <CardTitle>Appearance</CardTitle>
-            <CardDescription>
-                Customize the look and feel of the app.
-            </CardDescription>
-            </CardHeader>
-            <CardContent>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-                <div>
-                    <h3 className="font-medium">Theme</h3>
-                    <p className="text-sm text-muted-foreground">Select your preferred color scheme.</p>
-                </div>
-                <ThemeToggle />
-            </div>
-            </CardContent>
-        </Card>
-    )
+  return (
+    <Card className="lg:col-span-1">
+      <CardHeader>
+        <CardTitle>Appearance</CardTitle>
+        <CardDescription>
+          Customize the look and feel of the app.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between rounded-lg border p-4">
+          <div>
+            <h3 className="font-medium">Theme</h3>
+            <p className="text-sm text-muted-foreground">
+              Select your preferred color scheme.
+            </p>
+          </div>
+          <ThemeToggle />
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
-
 function ProjectSettingsCard() {
-    return (
-        <Card className="lg:col-span-1">
-        <CardHeader>
-          <CardTitle>Project Settings</CardTitle>
-          <CardDescription>
-            Manage your Firebase project settings.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-           <Button asChild variant="outline" className="w-full">
-              <Link href={`https://console.firebase.google.com/project/${firebaseConfig.projectId}`} target="_blank">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Open Firebase Console
-              </Link>
-           </Button>
-        </CardContent>
-      </Card>
-    )
+  return (
+    <Card className="lg:col-span-1">
+      <CardHeader>
+        <CardTitle>Project Settings</CardTitle>
+        <CardDescription>Manage your Firebase project settings.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button asChild variant="outline" className="w-full">
+          <Link
+            href={`https://console.firebase.google.com/project/${firebaseConfig.projectId}`}
+            target="_blank"
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Open Firebase Console
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function SettingsPage() {
@@ -107,9 +169,15 @@ export default function SettingsPage() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Settings</h1>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Suspense fallback={null}><GroupProfileCard /></Suspense>
-        <Suspense fallback={null}><AppearanceCard /></Suspense>
-        <Suspense fallback={null}><ProjectSettingsCard /></Suspense>
+        <Suspense fallback={null}>
+          <GroupProfileCard />
+        </Suspense>
+        <Suspense fallback={null}>
+          <AppearanceCard />
+        </Suspense>
+        <Suspense fallback={null}>
+          <ProjectSettingsCard />
+        </Suspense>
       </div>
     </div>
   );

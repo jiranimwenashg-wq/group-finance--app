@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState, useRef } from "react";
-import Papa from "papaparse";
+import { useState, useRef } from 'react';
+import Papa from 'papaparse';
 import {
   Table,
   TableBody,
@@ -9,46 +9,153 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import type { Member } from "@/lib/data";
-import { Button } from "../ui/button";
-import { Download, PlusCircle, Upload } from "lucide-react";
+} from '@/components/ui/table';
+import type { Member } from '@/lib/data';
+import { Button } from '../ui/button';
+import { Download, PlusCircle, Upload } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../ui/dialog";
-import { Label } from "../ui/label";
-import { Input } from "../ui/input";
-import { Badge } from "../ui/badge";
-import { useToast } from "@/hooks/use-toast";
+} from '../ui/dialog';
+import { Badge } from '../ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '../ui/form';
+import { Input } from '../ui/input';
 
 type MembersClientProps = {
   initialMembers: Member[];
 };
 
+const memberSchema = z.object({
+  name: z.string().min(1, { message: 'Name is required' }),
+  phone: z.string().min(1, { message: 'Phone number is required' }),
+});
+
+function AddMemberDialog({
+  onAddMember,
+}: {
+  onAddMember: (member: Omit<Member, 'id' | 'joinDate' | 'status'>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const form = useForm<z.infer<typeof memberSchema>>({
+    resolver: zodResolver(memberSchema),
+    defaultValues: {
+      name: '',
+      phone: '',
+    },
+  });
+
+  function onSubmit(values: z.infer<typeof memberSchema>) {
+    onAddMember(values);
+    form.reset();
+    setOpen(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <PlusCircle className="mr-2 h-4 w-4" /> Add Member
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add New Member</DialogTitle>
+          <DialogDescription>
+            Enter the details for the new member.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="tel"
+                      placeholder="+254700000000"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button type="submit">Save Member</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function MembersClient({ initialMembers }: MembersClientProps) {
   const [members, setMembers] = useState(initialMembers);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const handleAddMember = (
+    newMemberData: Omit<Member, 'id' | 'joinDate' | 'status'>
+  ) => {
+    const newMember: Member = {
+      ...newMemberData,
+      id: `MEM${Date.now()}`,
+      joinDate: new Date(),
+      status: 'Active',
+    };
+    setMembers((prev) => [newMember, ...prev]);
+    toast({
+      title: 'Member Added',
+      description: `${newMember.name} has been successfully added.`,
+    });
+  };
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ["name", "phone"];
-    const csvContent = headers.join(",");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const headers = ['name', 'phone'];
+    const csvContent = headers.join(',');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "members_template.csv");
-    link.style.visibility = "hidden";
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'members_template.csv');
+    link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -58,11 +165,11 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== "text/csv") {
+    if (file.type !== 'text/csv') {
       toast({
-        variant: "destructive",
-        title: "Invalid File Type",
-        description: "Please upload a .csv file.",
+        variant: 'destructive',
+        title: 'Invalid File Type',
+        description: 'Please upload a .csv file.',
       });
       return;
     }
@@ -71,7 +178,7 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const requiredHeaders = ["name", "phone"];
+        const requiredHeaders = ['name', 'phone'];
         const headers = results.meta.fields || [];
         const missingHeaders = requiredHeaders.filter(
           (h) => !headers.includes(h)
@@ -79,10 +186,10 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
 
         if (missingHeaders.length > 0) {
           toast({
-            variant: "destructive",
-            title: "Invalid CSV format",
+            variant: 'destructive',
+            title: 'Invalid CSV format',
             description: `Missing required columns: ${missingHeaders.join(
-              ", "
+              ', '
             )}`,
           });
           return;
@@ -93,25 +200,25 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
           name: row.name,
           phone: row.phone,
           joinDate: new Date(),
-          status: "Active",
+          status: 'Active',
         }));
 
         setMembers((prev) => [...prev, ...newMembers]);
         toast({
-          title: "Import Successful",
+          title: 'Import Successful',
           description: `${newMembers.length} members have been added.`,
         });
       },
       error: (error) => {
         toast({
-          variant: "destructive",
-          title: "CSV Parsing Error",
+          variant: 'destructive',
+          title: 'CSV Parsing Error',
           description: error.message,
         });
       },
     });
 
-    event.target.value = "";
+    event.target.value = '';
   };
 
   return (
@@ -132,37 +239,7 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
             accept=".csv"
             className="hidden"
           />
-          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Member
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Member</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input id="name" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phone" className="text-right">
-                    Phone
-                  </Label>
-                  <Input id="phone" type="tel" className="col-span-3" />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit" onClick={() => setAddDialogOpen(false)}>
-                  Save Member
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <AddMemberDialog onAddMember={handleAddMember} />
         </div>
       </div>
       <div className="rounded-lg border shadow-sm">
@@ -188,12 +265,12 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
                 <TableCell>
                   <Badge
                     variant={
-                      member.status === "Active" ? "default" : "outline"
+                      member.status === 'Active' ? 'default' : 'outline'
                     }
                     className={
-                      member.status === "Active"
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                        : ""
+                      member.status === 'Active'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                        : ''
                     }
                   >
                     {member.status}
@@ -207,5 +284,3 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
     </div>
   );
 }
-
-    

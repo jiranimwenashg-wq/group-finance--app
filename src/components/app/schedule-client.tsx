@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -32,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -40,6 +39,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
+
 
 type ScheduleStatus = "Pending" | "Paid" | "Skipped";
 
@@ -56,15 +60,22 @@ type ScheduleClientProps = {
 
 const CONTRIBUTION_AMOUNT = 5000; // Assuming a fixed contribution amount
 
+const editPayoutSchema = z.object({
+    payoutDate: z.date({ required_error: 'A date is required.' }),
+    payoutAmount: z.coerce.number().min(1, 'Payout amount must be greater than 0.'),
+});
+
 export default function ScheduleClient({ members }: ScheduleClientProps) {
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ScheduleItem | null>(null);
-  const [editedDate, setEditedDate] = useState<Date | undefined>();
-  const [editedAmount, setEditedAmount] = useState(0);
 
   const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof editPayoutSchema>>({
+    resolver: zodResolver(editPayoutSchema),
+  });
 
   const activeMembers = useMemo(
     () => members.filter((m) => m.status === "Active"),
@@ -96,6 +107,15 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(activeMembers)]);
 
+  useEffect(() => {
+    if (selectedItem) {
+        form.reset({
+            payoutDate: selectedItem.payoutDate,
+            payoutAmount: selectedItem.payoutAmount,
+        })
+    }
+  }, [selectedItem, form])
+
   const handleStatusChange = (
     payoutDate: Date,
     newStatus: ScheduleStatus
@@ -109,8 +129,6 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
 
   const handleEditClick = (item: ScheduleItem) => {
     setSelectedItem(item);
-    setEditedDate(item.payoutDate);
-    setEditedAmount(item.payoutAmount);
     setIsEditDialogOpen(true);
   };
   
@@ -127,14 +145,14 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
     setSelectedItem(null);
   };
 
-  const handleSave = () => {
-    if (!selectedItem || !editedDate) return;
+  const handleSave = (values: z.infer<typeof editPayoutSchema>) => {
+    if (!selectedItem) return;
 
     setSchedule(prev => prev.map(item => 
-        item.payoutDate.getTime() === selectedItem.payoutDate.getTime()
-        ? { ...item, payoutDate: editedDate, payoutAmount: editedAmount }
+        item.member.id === selectedItem.member.id
+        ? { ...item, payoutDate: values.payoutDate, payoutAmount: values.payoutAmount }
         : item
-    ));
+    ).sort((a,b) => a.payoutDate.getTime() - b.payoutDate.getTime()));
 
     toast({ title: "Payout Updated", description: "The payout details have been saved." });
     setIsEditDialogOpen(false);
@@ -188,7 +206,7 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
                 </TableHeader>
                 <TableBody>
                   {schedule.map((item) => (
-                    <TableRow key={item.payoutDate.toISOString()}>
+                    <TableRow key={item.member.id}>
                       <TableCell className="font-medium">{format(item.payoutDate, "MMMM yyyy")}</TableCell>
                       <TableCell>{format(item.payoutDate, "do MMMM yyyy")}</TableCell>
                       <TableCell>{item.member.name}</TableCell>
@@ -253,38 +271,69 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
           <DialogContent>
               <DialogHeader>
                   <DialogTitle>Edit Payout</DialogTitle>
+                   <DialogDescription>
+                    Update the payout details for {selectedItem?.member.name}.
+                    </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="member" className="text-right">Member</Label>
-                      <Input id="member" value={selectedItem?.member.name || ''} disabled className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="date" className="text-right">Date</Label>
-                      <Popover>
-                          <PopoverTrigger asChild>
-                              <Button
-                                  variant={"outline"}
-                                  className={cn("w-[280px] justify-start text-left font-normal", !editedDate && "text-muted-foreground")}
-                              >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {editedDate ? format(editedDate, "PPP") : <span>Pick a date</span>}
-                              </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                              <Calendar mode="single" selected={editedDate} onSelect={setEditedDate} initialFocus />
-                          </PopoverContent>
-                      </Popover>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="amount" className="text-right">Amount</Label>
-                      <Input id="amount" type="number" value={editedAmount} onChange={e => setEditedAmount(Number(e.target.value))} className="col-span-3" />
-                  </div>
-              </div>
-              <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={handleSave}>Save Changes</Button>
-              </DialogFooter>
+             <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4 py-4">
+                     <FormField
+                        control={form.control}
+                        name="payoutDate"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                                <FormLabel>Date</FormLabel>
+                                <Popover>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                        "w-[240px] pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                        )}
+                                    >
+                                        {field.value ? (
+                                        format(field.value, "PPP")
+                                        ) : (
+                                        <span>Pick a date</span>
+                                        )}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    initialFocus
+                                    />
+                                </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="payoutAmount"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Amount</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+                        <Button type="submit">Save Changes</Button>
+                    </DialogFooter>
+                </form>
+             </Form>
           </DialogContent>
       </Dialog>
       
@@ -307,5 +356,3 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
     </div>
   );
 }
-
-    
