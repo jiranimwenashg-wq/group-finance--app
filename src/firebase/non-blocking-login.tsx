@@ -6,9 +6,10 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
-  FirebaseError,
   sendPasswordResetEmail,
 } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
+
 
 type ErrorCallback = (errorMessage: string) => void;
 type SuccessCallback = (successMessage: string) => void;
