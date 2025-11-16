@@ -16,17 +16,26 @@ import Link from 'next/link';
 import { useAuth } from '@/firebase';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 import { useRedirectIfAuthenticated } from '@/hooks/use-redirect-if-authenticated';
+import { useToast } from '@/hooks/use-toast';
+import { FirebaseError } from 'firebase/app';
 
 export default function LoginPage() {
   useRedirectIfAuthenticated();
   const auth = useAuth();
+  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
-    initiateEmailSignIn(auth, email, password);
+    initiateEmailSignIn(auth, email, password).catch((error: FirebaseError) => {
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: 'The email or password you entered is incorrect.',
+      });
+    });
   };
 
   return (
