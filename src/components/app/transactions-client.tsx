@@ -42,6 +42,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Input } from "../ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
 type TransactionsClientProps = {
   initialTransactions: Transaction[];
@@ -195,6 +196,70 @@ function AddTransactionDialog({
     )
 }
 
+function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "KES",
+    }).format(amount);
+
+  return (
+    <div className="rounded-lg border shadow-sm">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Date</TableHead>
+            <TableHead>Member</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead className="text-right">Amount</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {transactions.map((transaction) => (
+            <TableRow key={transaction.id}>
+              <TableCell>
+                {transaction.date.toLocaleDateString()}
+              </TableCell>
+              <TableCell>{transaction.memberName || "N/A"}</TableCell>
+              <TableCell className="font-medium">
+                {transaction.description}
+              </TableCell>
+              <TableCell>
+                <Badge variant="secondary">{transaction.category}</Badge>
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant={
+                    transaction.type === "Income" ? "outline" : "destructive"
+                  }
+                  className={
+                    transaction.type === "Income"
+                      ? "border-green-500 text-green-500"
+                      : ""
+                  }
+                >
+                  {transaction.type}
+                </Badge>
+              </TableCell>
+              <TableCell
+                className={`text-right font-semibold ${
+                  transaction.type === "Income"
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                {formatCurrency(transaction.amount)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
 export default function TransactionsClient({
   initialTransactions,
   members,
@@ -215,6 +280,14 @@ export default function TransactionsClient({
       return descriptionMatch || (memberNameMatch ?? false) || categoryMatch;
     }).sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [transactions, filter]);
+
+  const contributionTransactions = useMemo(() => {
+    return filteredTransactions.filter(t => t.category === 'Contribution');
+  }, [filteredTransactions]);
+
+  const lastRespectTransactions = useMemo(() => {
+    return filteredTransactions.filter(t => t.category === 'Last Respect');
+  }, [filteredTransactions]);
 
   const handleAddTransaction = (data: z.infer<typeof transactionSchema>) => {
     const member = data.memberId ? members.find(m => m.id === data.memberId) : undefined;
@@ -258,8 +331,6 @@ export default function TransactionsClient({
         description: toastDescription,
       });
 
-      // Here you would typically pre-fill a form with the parsed data
-      // For this demo, we just show a toast and could pre-fill the add dialog
     } catch (error) {
       console.error("Failed to parse SMS:", error);
       toast({
@@ -393,7 +464,6 @@ export default function TransactionsClient({
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-2">
-                <Label htmlFor="sms-text">M-Pesa SMS</Label>
                 <Textarea
                   id="sms-text"
                   placeholder="Paste SMS here..."
@@ -431,59 +501,22 @@ export default function TransactionsClient({
           />
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border shadow-sm">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Member</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTransactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell>
-                      {transaction.date.toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{transaction.memberName || "N/A"}</TableCell>
-                    <TableCell className="font-medium">
-                      {transaction.description}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{transaction.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          transaction.type === "Income" ? "outline" : "destructive"
-                        }
-                        className={
-                          transaction.type === "Income"
-                            ? "border-green-500 text-green-500"
-                            : ""
-                        }
-                      >
-                        {transaction.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell
-                      className={`text-right font-semibold ${
-                        transaction.type === "Income"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {formatCurrency(transaction.amount)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <Tabs defaultValue="all">
+            <TabsList>
+              <TabsTrigger value="all">All Transactions</TabsTrigger>
+              <TabsTrigger value="contributions">Contributions</TabsTrigger>
+              <TabsTrigger value="last_respect">Last Respect</TabsTrigger>
+            </TabsList>
+            <TabsContent value="all" className="mt-4">
+                <TransactionsTable transactions={filteredTransactions} />
+            </TabsContent>
+            <TabsContent value="contributions" className="mt-4">
+                <TransactionsTable transactions={contributionTransactions} />
+            </TabsContent>
+            <TabsContent value="last_respect" className="mt-4">
+                <TransactionsTable transactions={lastRespectTransactions} />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
