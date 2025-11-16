@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -20,18 +21,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { format } from "date-fns";
 
 type ScheduleStatus = "Pending" | "Paid" | "Skipped";
 
 type ScheduleItem = {
-  month: string;
+  payoutDate: Date;
   member: Member;
   status: ScheduleStatus;
+  payoutAmount: number;
 };
 
 type ScheduleClientProps = {
   members: Member[];
 };
+
+const CONTRIBUTION_AMOUNT = 5000; // Assuming a fixed contribution amount
 
 export default function ScheduleClient({ members }: ScheduleClientProps) {
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
@@ -43,17 +48,18 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
   const generateSchedule = () => {
     const shuffledMembers = [...activeMembers].sort(() => Math.random() - 0.5);
     const currentMonth = new Date().getMonth();
+    const payoutAmount = activeMembers.length * CONTRIBUTION_AMOUNT;
 
     const newSchedule = shuffledMembers.map((member, index) => {
-      const date = new Date();
-      date.setMonth(currentMonth + index);
+      const payoutDate = new Date();
+      payoutDate.setDate(1); // Set to the 1st of the month
+      payoutDate.setMonth(currentMonth + index);
+      
       return {
-        month: date.toLocaleString("default", {
-          month: "long",
-          year: "numeric",
-        }),
+        payoutDate,
         member: member,
         status: "Pending" as ScheduleStatus,
+        payoutAmount,
       };
     });
     setSchedule(newSchedule);
@@ -65,12 +71,12 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
   }, [JSON.stringify(activeMembers)]);
 
   const handleStatusChange = (
-    month: string,
+    payoutDate: Date,
     newStatus: ScheduleStatus
   ) => {
     setSchedule((prevSchedule) =>
       prevSchedule.map((item) =>
-        item.month === month ? { ...item, status: newStatus } : item
+        item.payoutDate.getTime() === payoutDate.getTime() ? { ...item, status: newStatus } : item
       )
     );
   };
@@ -86,6 +92,12 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
         return "outline";
     }
   };
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "KES",
+    }).format(amount);
 
   return (
     <div className="space-y-4">
@@ -106,16 +118,20 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[200px]">Turn (Month)</TableHead>
+                    <TableHead>Payout Date</TableHead>
                     <TableHead>Receiving Member</TableHead>
+                    <TableHead>Payout Amount</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[50px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {schedule.map((item) => (
-                    <TableRow key={item.month}>
-                      <TableCell className="font-medium">{item.month}</TableCell>
+                    <TableRow key={item.payoutDate.toISOString()}>
+                      <TableCell className="font-medium">{format(item.payoutDate, "MMMM yyyy")}</TableCell>
+                      <TableCell>{format(item.payoutDate, "do MMMM yyyy")}</TableCell>
                       <TableCell>{item.member.name}</TableCell>
+                       <TableCell>{formatCurrency(item.payoutAmount)}</TableCell>
                       <TableCell>
                         <Badge variant={getBadgeVariant(item.status)}>
                           {item.status}
@@ -131,21 +147,21 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
                               onClick={() =>
-                                handleStatusChange(item.month, "Paid")
+                                handleStatusChange(item.payoutDate, "Paid")
                               }
                             >
                               Mark as Paid
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() =>
-                                handleStatusChange(item.month, "Pending")
+                                handleStatusChange(item.payoutDate, "Pending")
                               }
                             >
                               Mark as Pending
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() =>
-                                handleStatusChange(item.month, "Skipped")
+                                handleStatusChange(item.payoutDate, "Skipped")
                               }
                             >
                               Mark as Skipped
