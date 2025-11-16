@@ -9,6 +9,7 @@ import {
   Users,
   Banknote,
   FileCheck,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -26,6 +27,7 @@ const links = [
   { href: "/dashboard/reports", label: "Reports", icon: <FileCheck /> },
   { href: "/dashboard/insurance", label: "Insurance", icon: <HeartHandshake /> },
   { href: "/dashboard/schedule", label: "Schedule", icon: <CalendarClock /> },
+  { href: "/dashboard/calendar", label: "Calendar", icon: <Calendar /> },
   { href: "/dashboard/constitution", label: "Constitution AI", icon: <FileText /> },
 ];
 
