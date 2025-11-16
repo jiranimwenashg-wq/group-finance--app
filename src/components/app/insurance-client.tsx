@@ -20,9 +20,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
+import { Input } from '../ui/input';
 
 type InsuranceClientProps = {
   initialPayments: InsurancePayment[];
@@ -47,10 +48,14 @@ export default function InsuranceClient({
   );
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [filter, setFilter] = useState('');
 
   const activeMembers = useMemo(
-    () => members.filter(m => m.status === 'Active'),
-    [members]
+    () => members.filter(m => 
+      m.status === 'Active' && 
+      m.name.toLowerCase().includes(filter.toLowerCase())
+    ),
+    [members, filter]
   );
   const selectedPolicy = useMemo(
     () => policies.find(p => p.id === selectedPolicyId)!,
@@ -109,15 +114,16 @@ export default function InsuranceClient({
   };
 
   const monthlyStats = useMemo(() => {
+    const allActiveMembers = members.filter(m => m.status === 'Active');
     const monthKey = `${selectedYear}-${(selectedMonth + 1)
       .toString()
       .padStart(2, '0')}`;
-    const totalPossible = activeMembers.length * selectedPolicy.monthlyPremium;
+    const totalPossible = allActiveMembers.length * selectedPolicy.monthlyPremium;
     let collected = 0;
 
-    filteredPayments.forEach(p => {
+    payments.filter(p => p.policyId === selectedPolicyId).forEach(p => {
       if (
-        activeMembers.some(am => am.id === p.memberId) &&
+        allActiveMembers.some(am => am.id === p.memberId) &&
         p.payments[monthKey] === 'Paid'
       ) {
         collected += selectedPolicy.monthlyPremium;
@@ -132,9 +138,9 @@ export default function InsuranceClient({
   }, [
     selectedYear,
     selectedMonth,
-    activeMembers,
+    members,
     selectedPolicy,
-    filteredPayments,
+    payments,
   ]);
 
   const years = [
@@ -206,9 +212,18 @@ export default function InsuranceClient({
       </div>
 
       <Card>
-          <CardHeader className="flex-row items-center justify-between">
-            <div>
+          <CardHeader className="flex-row items-start justify-between gap-4">
+            <div className="flex-1">
               <CardTitle>Monthly Contributions</CardTitle>
+              <CardDescription>
+                Filter by member name or select a month to view and update payment statuses.
+              </CardDescription>
+              <Input 
+                placeholder="Filter members by name..."
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="mt-4 max-w-sm"
+              />
             </div>
              <div className="flex items-center gap-2">
                 <Select value={String(selectedMonth)} onValueChange={val => setSelectedMonth(Number(val))}>
