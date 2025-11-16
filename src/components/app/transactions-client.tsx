@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
@@ -25,7 +24,7 @@ import {
   DialogTrigger,
 } from '../ui/dialog';
 import { Textarea } from '../ui/textarea';
-import { Bot, Download, PlusCircle, Upload, Copy, Share2 } from 'lucide-react';
+import { Bot, Download, PlusCircle, Upload, Copy, Share2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   parseMpesaSms,
@@ -86,13 +85,12 @@ const transactionSchema = z.object({
 
 function AddTransactionDialog({
   members,
+  onAddTransaction,
 }: {
   members: Member[];
+  onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const firestore = useFirestore();
-  const { toast } = useToast();
-
   const form = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
@@ -104,7 +102,6 @@ function AddTransactionDialog({
   });
 
   const onSubmit = (values: z.infer<typeof transactionSchema>) => {
-    if (!firestore) return;
     const member = values.memberId
       ? members.find((m) => m.id === values.memberId)
       : undefined;
@@ -115,21 +112,7 @@ function AddTransactionDialog({
       memberName: member?.name,
       groupId: GROUP_ID,
     };
-
-    const transactionsRef = collection(
-      firestore,
-      'groups',
-      GROUP_ID,
-      'transactions'
-    );
-    addDocumentNonBlocking(transactionsRef, newTransaction);
-
-    toast({
-      title: 'Transaction Added',
-      description: `A new transaction for ${formatCurrency(
-        newTransaction.amount
-      )} has been recorded.`,
-    });
+    onAddTransaction(newTransaction);
     form.reset();
     setOpen(false);
   };
@@ -431,6 +414,8 @@ export default function TransactionsClient() {
   const [smsText, setSmsText] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   const [filter, setFilter] = useState('');
+  const [parsedTransaction, setParsedTransaction] =
+    useState<ParseMpesaSmsOutput | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -452,6 +437,16 @@ export default function TransactionsClient() {
     useCollection<Member>(membersQuery, membersPath);
   const { data: transactions, isLoading: isLoadingTransactions } =
     useCollection<Transaction>(transactionsQuery, transactionsPath);
+
+  const handleAddTransaction = (transaction: Omit<Transaction, 'id'>) => {
+    if (!firestore) return;
+    const transactionsRef = collection(firestore, 'groups', GROUP_ID, 'transactions');
+    addDocumentNonBlocking(transactionsRef, transaction);
+    toast({
+      title: 'Transaction Added',
+      description: `A new transaction for ${formatCurrency(transaction.amount)} has been recorded.`,
+    });
+  };
 
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];
@@ -490,28 +485,17 @@ export default function TransactionsClient() {
       return;
     }
     setIsParsing(true);
+    setParsedTransaction(null);
     try {
       const activeMembers =
         members
           ?.filter((m) => m.status === 'Active')
           .map((m) => ({ id: m.id, name: m.name })) || [];
-      const result: ParseMpesaSmsOutput = await parseMpesaSms({
+      const result = await parseMpesaSms({
         smsText,
         members: activeMembers,
       });
-
-      let toastDescription = `Amount: ${result.amount}, From/To: ${result.senderRecipient}`;
-      if (result.memberId) {
-        const member = members?.find((m) => m.id === result.memberId);
-        if (member) {
-          toastDescription += ` (Matched to ${member.name})`;
-        }
-      }
-
-      toast({
-        title: 'SMS Parsed Successfully',
-        description: toastDescription,
-      });
+      setParsedTransaction(result);
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -522,6 +506,39 @@ export default function TransactionsClient() {
       setIsParsing(false);
     }
   };
+  
+  const handleSaveParsedTransaction = () => {
+    if (!parsedTransaction) return;
+
+    const member = parsedTransaction.memberId ? members?.find(m => m.id === parsedTransaction.memberId) : undefined;
+    
+    const newTransaction: Omit<Transaction, 'id'> = {
+        date: new Date(parsedTransaction.date),
+        description: `M-Pesa payment from ${parsedTransaction.senderRecipient}`,
+        amount: parsedTransaction.amount,
+        type: 'Income', // Assuming M-pesa parsing is for income
+        category: 'Contribution',
+        memberId: parsedTransaction.memberId,
+        memberName: member?.name,
+        groupId: GROUP_ID
+    };
+
+    handleAddTransaction(newTransaction);
+    setParsedTransaction(null);
+    setSmsText('');
+  };
+
+  const handleCopyForWhatsApp = () => {
+    if (!parsedTransaction) return;
+    const memberName = parsedTransaction.memberId ? members?.find(m => m.id === parsedTransaction.memberId)?.name : parsedTransaction.senderRecipient;
+    const text = `Transaction Alert:\nReceived ${formatCurrency(parsedTransaction.amount)} from ${memberName} on ${new Date(parsedTransaction.date).toLocaleDateString('en-GB')}.`;
+    navigator.clipboard.writeText(text);
+    toast({
+        title: "Copied to Clipboard",
+        description: "The transaction message is ready to be pasted.",
+    });
+  };
+
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -666,7 +683,12 @@ export default function TransactionsClient() {
             accept=".csv"
             className="hidden"
           />
-          <Dialog>
+          <Dialog onOpenChange={(open) => {
+            if (!open) {
+                setParsedTransaction(null);
+                setSmsText('');
+            }
+          }}>
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Bot className="mr-2 h-4 w-4" /> Parse SMS
@@ -676,11 +698,10 @@ export default function TransactionsClient() {
               <DialogHeader>
                 <DialogTitle>AI-Powered SMS Parser</DialogTitle>
                 <DialogDescription>
-                  Paste your M-Pesa SMS below and let AI extract the details and
-                  match it to a member.
+                  Paste your M-Pesa SMS below and let AI extract the details.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <Textarea
                   id="sms-text"
                   placeholder="Paste SMS here..."
@@ -688,20 +709,49 @@ export default function TransactionsClient() {
                   value={smsText}
                   onChange={(e) => setSmsText(e.target.value)}
                 />
+                 {parsedTransaction && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Parsed Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <p><strong>Amount:</strong> {formatCurrency(parsedTransaction.amount)}</p>
+                      <p><strong>From/To:</strong> {parsedTransaction.senderRecipient}</p>
+                      <p><strong>Date:</strong> {new Date(parsedTransaction.date).toLocaleString()}</p>
+                      {parsedTransaction.memberId && members && (
+                        <p className="text-green-600 font-semibold">
+                          ✓ Matched to member: {members.find(m => m.id === parsedTransaction.memberId)?.name}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
-              <DialogFooter>
-                <Button
-                  onClick={handleParseSms}
-                  disabled={isParsing || isLoadingMembers}
-                  className="w-full"
-                >
-                  {isParsing ? 'Parsing...' : 'Parse with AI'}
-                </Button>
+              <DialogFooter className="mt-4 flex-col gap-2 sm:flex-row">
+                 {parsedTransaction ? (
+                    <>
+                       <Button onClick={handleCopyForWhatsApp} variant="outline" className="w-full">
+                           <Copy className="mr-2 h-4 w-4" /> Copy for WhatsApp
+                       </Button>
+                       <Button onClick={handleSaveParsedTransaction} className="w-full">
+                            Save Transaction
+                       </Button>
+                    </>
+                 ) : (
+                    <Button
+                        onClick={handleParseSms}
+                        disabled={isParsing || isLoadingMembers}
+                        className="w-full"
+                    >
+                        {isParsing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isParsing ? 'Parsing...' : 'Parse with AI'}
+                    </Button>
+                 )}
               </DialogFooter>
             </DialogContent>
           </Dialog>
            <WhatsAppExportDialog transactions={transactions || []} />
-          <AddTransactionDialog members={members || []} />
+          <AddTransactionDialog members={members || []} onAddTransaction={handleAddTransaction} />
         </div>
       </div>
       <Card>
