@@ -52,7 +52,7 @@ const transactionSchema = z.object({
     description: z.string().min(1, 'Description is required'),
     amount: z.coerce.number().positive('Amount must be positive'),
     type: z.enum(['Income', 'Expense']),
-    category: z.enum(['Contribution', 'Late Fee', 'Project', 'Social Fund', 'Operational']),
+    category: z.enum(['Contribution', 'Late Fee', 'Project', 'Social Fund', 'Operational', 'Last Respect']),
     memberId: z.string().optional(),
 });
 
@@ -157,6 +157,7 @@ function AddTransactionDialog({
                                         <SelectItem value="Project">Project</SelectItem>
                                         <SelectItem value="Social Fund">Social Fund</SelectItem>
                                         <SelectItem value="Operational">Operational</SelectItem>
+                                        <SelectItem value="Last Respect">Last Respect</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -329,7 +330,7 @@ export default function TransactionsClient({
             description: row.description,
             amount: parseFloat(row.amount),
             type: row.type as 'Income' | 'Expense',
-            category: row.category as 'Contribution' | 'Late Fee' | 'Project' | 'Social Fund' | 'Operational',
+            category: row.category as 'Contribution' | 'Late Fee' | 'Project' | 'Social Fund' | 'Operational' | 'Last Respect',
             memberId: member?.id,
             memberName: member?.name,
           };
