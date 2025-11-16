@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { PlusCircle, Bell, Trash2, Bot, Loader2 } from "lucide-react";
+import { PlusCircle, Bell, Trash2, Bot, Loader2, Calendar as CalendarIcon, Repeat } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,6 +24,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -34,8 +35,9 @@ import { Textarea } from "../ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon } from 'lucide-react';
 import { ScrollArea } from "../ui/scroll-area";
+import { Checkbox } from "../ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 
 type Event = {
@@ -45,10 +47,18 @@ type Event = {
   description?: string;
 };
 
+const recurrenceSchema = z.object({
+  isRecurring: z.boolean().default(false),
+  frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly']).optional(),
+  interval: z.coerce.number().optional(),
+  endDate: z.date().optional(),
+});
+
 const eventSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   date: z.date({ required_error: 'A date is required.' }),
   description: z.string().optional(),
+  recurrence: recurrenceSchema,
 });
 
 const getFirstSundayOfMonth = (year: number, month: number): Date => {
@@ -145,51 +155,79 @@ export default function CalendarClient() {
       title: "",
       date: new Date(),
       description: "",
+      recurrence: {
+        isRecurring: false,
+        frequency: 'weekly',
+        interval: 1,
+      }
     },
   });
+
+  const isRecurring = form.watch('recurrence.isRecurring');
+
+  const createRecurringEvents = (
+    title: string,
+    description: string,
+    startDate: Date,
+    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly',
+    interval: number,
+    endDate?: Date,
+    count?: number,
+  ) => {
+    const newEvents: Event[] = [];
+    let currentDate = startDate;
+    const limitDate = endDate;
+
+    const maxIterations = count || (limitDate ? 500 : 1); // Safety break
+
+    for (let i = 0; i < maxIterations; i++) {
+        if (limitDate && currentDate > limitDate) break;
+
+        newEvents.push({
+            id: `EVT${Date.now()}-${i}`,
+            title: title!,
+            date: currentDate,
+            description: description || '',
+        });
+
+        if (frequency === 'daily') {
+            currentDate = addDays(currentDate, interval);
+        } else if (frequency === 'weekly') {
+            currentDate = addWeeks(currentDate, interval);
+        } else if (frequency === 'monthly') {
+            currentDate = addMonths(currentDate, interval);
+        } else if (frequency === 'yearly') {
+            currentDate = addYears(currentDate, interval);
+        } else {
+            break;
+        }
+    }
+    
+    setEvents(prev => [...prev, ...newEvents].sort((a,b) => a.date.getTime() - b.date.getTime()));
+    toast({
+        title: "Recurring Events Created",
+        description: `${newEvents.length} instances of "${title}" have been added to the calendar.`,
+    });
+  }
   
   const handleAiEventParsed = (data: Partial<CreateEventFromTextOutput>) => {
-    if (data.recurrence) {
-        const newEvents: Event[] = [];
+    if (data.recurrence && data.title && data.date) {
         const { recurrence, title, date, description } = data;
         
-        let currentDate = new Date(date!);
+        let startDate = new Date(date!);
         // Adjust for timezone offset
-        const timezoneOffset = currentDate.getTimezoneOffset() * 60000;
-        currentDate = new Date(currentDate.getTime() + timezoneOffset);
+        const timezoneOffset = startDate.getTimezoneOffset() * 60000;
+        startDate = new Date(startDate.getTime() + timezoneOffset);
 
-        const limitDate = recurrence.endDate ? new Date(recurrence.endDate) : null;
-        const count = recurrence.count || (limitDate ? Infinity : 1);
-
-        for (let i = 0; i < count; i++) {
-            if (limitDate && currentDate > limitDate) break;
-
-            newEvents.push({
-                id: `EVT${Date.now()}-${i}`,
-                title: title!,
-                date: currentDate,
-                description: description || '',
-            });
-
-            const interval = recurrence.interval || 1;
-            if (recurrence.frequency === 'daily') {
-                currentDate = addDays(currentDate, interval);
-            } else if (recurrence.frequency === 'weekly') {
-                currentDate = addWeeks(currentDate, interval);
-            } else if (recurrence.frequency === 'monthly') {
-                currentDate = addMonths(currentDate, interval);
-            } else if (recurrence.frequency === 'yearly') {
-                currentDate = addYears(currentDate, interval);
-            } else {
-                break;
-            }
-        }
-        
-        setEvents(prev => [...prev, ...newEvents].sort((a,b) => a.date.getTime() - b.date.getTime()));
-        toast({
-            title: "Recurring Events Created",
-            description: `${newEvents.length} instances of "${title}" have been added to the calendar.`,
-        });
+        createRecurringEvents(
+          title,
+          description || '',
+          startDate,
+          recurrence.frequency!,
+          recurrence.interval || 1,
+          recurrence.endDate ? new Date(recurrence.endDate) : undefined,
+          recurrence.count
+        );
 
     } else if(data.title && data.date) {
       const eventDate = new Date(data.date);
@@ -201,22 +239,37 @@ export default function CalendarClient() {
           title: data.title,
           date: adjustedDate,
           description: data.description || '',
+          recurrence: { isRecurring: false }
       });
       setIsAddDialogOpen(true);
     }
   };
 
   const onSubmit = (values: z.infer<typeof eventSchema>) => {
-    const newEvent: Event = {
-      ...values,
-      id: `EVT${Date.now()}`,
-    };
-    setEvents((prev) => [...prev, newEvent].sort((a,b) => a.date.getTime() - b.date.getTime()));
-    toast({
-      title: "Event Created",
-      description: `${values.title} has been added to the calendar.`,
-    });
-    form.reset({ title: "", date: new Date(), description: "" });
+    if (values.recurrence.isRecurring && values.recurrence.frequency) {
+        createRecurringEvents(
+            values.title,
+            values.description || '',
+            values.date,
+            values.recurrence.frequency,
+            values.recurrence.interval || 1,
+            values.recurrence.endDate
+        );
+    } else {
+        const newEvent: Event = {
+            id: `EVT${Date.now()}`,
+            title: values.title,
+            date: values.date,
+            description: values.description
+        };
+        setEvents((prev) => [...prev, newEvent].sort((a,b) => a.date.getTime() - b.date.getTime()));
+        toast({
+          title: "Event Created",
+          description: `${values.title} has been added to the calendar.`,
+        });
+    }
+
+    form.reset({ title: "", date: new Date(), description: "" , recurrence: { isRecurring: false, frequency: 'weekly', interval: 1 }});
     setIsAddDialogOpen(false);
   };
   
@@ -251,7 +304,7 @@ export default function CalendarClient() {
         <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
             setIsAddDialogOpen(open);
             if (!open) {
-                form.reset({ title: "", date: new Date(), description: "" });
+                form.reset({ title: "", date: new Date(), description: "" , recurrence: { isRecurring: false, frequency: 'weekly', interval: 1 }});
             }
         }}>
             <DialogTrigger asChild>
@@ -259,7 +312,7 @@ export default function CalendarClient() {
                     <PlusCircle className="mr-2 h-4 w-4" /> Add Event
                 </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[480px]">
                 <DialogHeader>
                     <DialogTitle>Add New Event</DialogTitle>
                     <DialogDescription>
@@ -286,7 +339,7 @@ export default function CalendarClient() {
                             name="date"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel>Date</FormLabel>
+                                    <FormLabel>Start Date</FormLabel>
                                     <Popover>
                                         <PopoverTrigger asChild>
                                         <FormControl>
@@ -328,6 +381,106 @@ export default function CalendarClient() {
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                          control={form.control}
+                          name="recurrence.isRecurring"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Recurring Event</FormLabel>
+                                <FormDescription>
+                                  Is this a repeating event?
+                                </FormDescription>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+
+                       {isRecurring && (
+                          <Card className="bg-muted/50">
+                            <CardContent className="pt-6">
+                              <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name="recurrence.frequency"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Frequency</FormLabel>
+                                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                          <FormControl>
+                                              <SelectTrigger><SelectValue placeholder="Select frequency" /></SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                              <SelectItem value="daily">Daily</SelectItem>
+                                              <SelectItem value="weekly">Weekly</SelectItem>
+                                              <SelectItem value="monthly">Monthly</SelectItem>
+                                              <SelectItem value="yearly">Yearly</SelectItem>
+                                          </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name="recurrence.interval"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Interval</FormLabel>
+                                      <FormControl>
+                                        <Input type="number" placeholder="1" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name="recurrence.endDate"
+                                  render={({ field }) => (
+                                      <FormItem className="flex flex-col col-span-2">
+                                          <FormLabel>End Date (Optional)</FormLabel>
+                                          <Popover>
+                                              <PopoverTrigger asChild>
+                                              <FormControl>
+                                                  <Button
+                                                  variant={"outline"}
+                                                  className={cn(
+                                                      "w-[240px] pl-3 text-left font-normal",
+                                                      !field.value && "text-muted-foreground"
+                                                  )}
+                                                  >
+                                                  {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                  </Button>
+                                              </FormControl>
+                                              </PopoverTrigger>
+                                              <PopoverContent className="w-auto p-0" align="start">
+                                              <Calendar
+                                                  mode="single"
+                                                  selected={field.value}
+                                                  onSelect={field.onChange}
+                                                  initialFocus
+                                              />
+                                              </PopoverContent>
+                                          </Popover>
+                                          <FormDescription>If not set, the event will repeat 52 times by default for performance reasons.</FormDescription>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )}
+                              />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+
                          <DialogFooter>
                             <Button type="submit">Save Event</Button>
                         </DialogFooter>
@@ -397,3 +550,5 @@ export default function CalendarClient() {
     </div>
   );
 }
+
+    
