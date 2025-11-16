@@ -9,7 +9,7 @@
  * - /groups/{groupId}/transactions/{transactionId}: Financial transactions.
  * - /groups/{groupId}/members/{memberId}: Group member details.
  * - /groups/{groupId}/insurancePolicies/{insurancePolicyId}: Insurance policies for the group.
- * - /groups/{groupId}/members/{memberId}/insurancePayments/{insurancePaymentId}: Insurance payments made by members.
+ * - /groups/{groupId}/insurancePolicies/{insurancePolicyId}/payments/{paymentId}: Insurance payments made by members.
  * - /groups/{groupId}/constitutions/{constitutionId}: The group's constitution document.
  * - /groups/{groupId}/savingsSchedules/{savingsScheduleId}: Savings schedules for the group.
  *
@@ -135,26 +135,25 @@ service cloud.firestore {
       allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
       allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
       allow delete: if isGroupMember(groupId);
+      
+      /**
+       * @description Controls access to insurance payment documents within an insurance policy.
+       * @path /groups/{groupId}/insurancePolicies/{insurancePolicyId}/payments/{paymentId}
+       * @allow (create) - Authenticated user creates a new insurance payment.
+       *    - Request: auth.uid = "user123", resource.data.groupId = "group456"
+       * @deny (create) - User tries to create an insurance payment for a different group.
+       *    - Request: auth.uid = "user123", resource.data.groupId = "group789"
+       * @principle Restricts access to insurance payments based on the parent policy's group membership.
+       */
+      match /payments/{paymentId} {
+        allow get: if isGroupMember(groupId);
+        allow list: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
+        allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
+        allow delete: if isGroupMember(groupId);
+      }
     }
-
-    /**
-     * @description Controls access to insurance payment documents within a member's insurance payments.
-     * @path /groups/{groupId}/members/{memberId}/insurancePayments/{insurancePaymentId}
-     * @allow (create) - Authenticated user creates a new insurance payment.
-     *    - Request: auth.uid = "user123", resource.data.memberId = "member456"
-     * @deny (create) - User tries to create an insurance payment for a different member.
-     *    - Request: auth.uid = "user123", resource.data.memberId = "member789"
-     * @principle Restricts access to insurance payments based on member's group membership.
-     */
-    match /groups/{groupId}/members/{memberId}/insurancePayments/{insurancePaymentId} {
-      allow get: if isGroupMember(groupId);
-      allow list: if isGroupMember(groupId);
-
-      allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-      allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-      allow delete: if isGroupMember(groupId);
-    }
-
+    
     /**
      * @description Controls access to constitution documents within a group.
      * @path /groups/{groupId}/constitutions/{constitutionId}

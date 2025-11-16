@@ -12,7 +12,7 @@ import { Button } from '../ui/button';
 import Link from 'next/link';
 import { Input } from '../ui/input';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 
 interface MemberReportCardProps {
@@ -137,14 +137,33 @@ export default function ReportsClient({ policies }: ReportsClientProps) {
     return collection(firestore, 'groups', GROUP_ID, 'transactions');
   }, [firestore]);
 
-  const insurancePaymentsQuery = useMemoFirebase(() => {
-      if(!firestore) return null;
-      return collection(firestore, 'groups', GROUP_ID, 'insurancePayments');
-  }, [firestore]);
-  
   const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersQuery);
   const { data: transactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery);
-  const { data: insurancePayments, isLoading: isLoadingInsurance } = useCollection<InsurancePayment>(insurancePaymentsQuery);
+  
+  const paymentQueries = useMemoFirebase(() => {
+    if (!firestore || !policies) return [];
+    return policies.map(policy => 
+      query(collection(firestore, 'groups', GROUP_ID, 'insurancePolicies', policy.id, 'payments'))
+    );
+  }, [firestore, policies]);
+  
+  const allPayments = useMemo(() => {
+      let combined: InsurancePayment[] = [];
+      paymentQueries.forEach((_, index) => {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const { data } = useCollection<InsurancePayment>(paymentQueries[index]);
+        if (data) {
+          combined = [...combined, ...data];
+        }
+      });
+      return combined;
+  }, [paymentQueries]);
+  
+  const isLoadingInsurance = paymentQueries.some((_, index) => {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const { isLoading } = useCollection(paymentQueries[index]);
+      return isLoading;
+  });
 
 
   const activeMembers = useMemo(() => {
@@ -190,7 +209,7 @@ export default function ReportsClient({ policies }: ReportsClientProps) {
             <MemberReportCard
               member={member}
               transactions={transactions || []}
-              insurancePayments={insurancePayments || []}
+              insurancePayments={allPayments || []}
               policies={policies}
             />
           </Link>
