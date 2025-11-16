@@ -25,7 +25,7 @@ import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { Input } from '../ui/input';
 import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
-import { collection, doc, where, query } from 'firebase/firestore';
+import { collection, doc, query } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
 
@@ -81,20 +81,22 @@ export default function InsuranceClient({
   const [filter, setFilter] = useState('');
   const firestore = useFirestore();
 
+  const membersPath = `groups/${GROUP_ID}/members`;
   const membersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'groups', GROUP_ID, 'members');
+    return collection(firestore, membersPath);
   }, [firestore]);
   
-  const {data: members, isLoading: isLoadingMembers} = useCollection<Member>(membersQuery);
+  const {data: members, isLoading: isLoadingMembers} = useCollection<Member>(membersQuery, membersPath);
 
+  const paymentsPath = `groups/${GROUP_ID}/insurancePolicies/${selectedPolicyId}/payments`;
   const paymentsQuery = useMemoFirebase(() => {
     if (!firestore || !selectedPolicyId) return null;
-    const paymentsCollection = collection(firestore, 'groups', GROUP_ID, 'insurancePolicies', selectedPolicyId, 'payments');
+    const paymentsCollection = collection(firestore, paymentsPath);
     return query(paymentsCollection);
   }, [firestore, selectedPolicyId]);
 
-  const {data: payments, isLoading: isLoadingPayments} = useCollection<InsurancePayment>(paymentsQuery);
+  const {data: payments, isLoading: isLoadingPayments} = useCollection<InsurancePayment>(paymentsQuery, paymentsPath);
   
   const activeMembers = useMemo(
     () => members?.filter(m => 

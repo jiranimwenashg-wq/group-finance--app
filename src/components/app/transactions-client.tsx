@@ -374,20 +374,23 @@ export default function TransactionsClient() {
   const { toast } = useToast();
   const firestore = useFirestore();
 
+  const membersPath = `groups/${GROUP_ID}/members`;
+  const transactionsPath = `groups/${GROUP_ID}/transactions`;
+
   const membersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'groups', GROUP_ID, 'members');
+    return collection(firestore, membersPath);
   }, [firestore]);
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'groups', GROUP_ID, 'transactions');
+    return collection(firestore, transactionsPath);
   }, [firestore]);
 
   const { data: members, isLoading: isLoadingMembers } =
-    useCollection<Member>(membersQuery);
+    useCollection<Member>(membersQuery, membersPath);
   const { data: transactions, isLoading: isLoadingTransactions } =
-    useCollection<Transaction>(transactionsQuery);
+    useCollection<Transaction>(transactionsQuery, transactionsPath);
 
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];

@@ -272,14 +272,16 @@ function OverviewChartData({ transactions }: { transactions: Transaction[] }) {
 
 export default function DashboardPage() {
   const firestore = useFirestore();
+  const transactionsPath = `groups/${GROUP_ID}/transactions`;
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'groups', GROUP_ID, 'transactions');
+    return collection(firestore, transactionsPath);
   }, [firestore]);
 
   const { data: transactions, isLoading } = useCollection<Transaction>(
-    transactionsQuery
+    transactionsQuery,
+    transactionsPath
   );
 
   return (

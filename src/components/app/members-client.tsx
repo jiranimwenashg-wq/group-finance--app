@@ -161,13 +161,14 @@ export default function MembersClient() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
+  const membersPath = `groups/${GROUP_ID}/members`;
 
   const membersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'groups', GROUP_ID, 'members');
+    return collection(firestore, membersPath);
   }, [firestore]);
 
-  const { data: members, isLoading } = useCollection<Member>(membersQuery);
+  const { data: members, isLoading } = useCollection<Member>(membersQuery, membersPath);
 
 
   const filteredMembers = useMemo(() => {

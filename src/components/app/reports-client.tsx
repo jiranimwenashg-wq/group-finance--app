@@ -13,7 +13,7 @@ import { Button } from '../ui/button';
 import Link from 'next/link';
 import { Input } from '../ui/input';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 
 interface MemberReportCardProps {
@@ -122,6 +122,33 @@ function MemberReportCard({ member, transactions, insurancePayments, policies }:
   );
 }
 
+function useAllInsurancePayments(policies: InsurancePolicy[]) {
+    const firestore = useFirestore();
+
+    const paymentQueries = useMemoFirebase(() => {
+        if (!firestore || !policies) return [];
+        return policies.map(policy => {
+            const path = `groups/${GROUP_ID}/insurancePolicies/${policy.id}/payments`;
+            return {
+                query: query(collection(firestore, path)),
+                path
+            };
+        });
+    }, [firestore, policies]);
+
+    const results = paymentQueries.map(({ query, path }) => {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        return useCollection<InsurancePayment>(query, path);
+    });
+
+    const allPayments = useMemo(() => {
+        return results.flatMap(result => result.data || []);
+    }, [results]);
+
+    const isLoading = results.some(result => result.isLoading);
+
+    return { data: allPayments, isLoading };
+}
 
 interface ReportsClientProps {
   policies: InsurancePolicy[];
@@ -131,43 +158,22 @@ export default function ReportsClient({ policies }: ReportsClientProps) {
   const [filter, setFilter] = useState('');
   const firestore = useFirestore();
 
+  const membersPath = `groups/${GROUP_ID}/members`;
+  const transactionsPath = `groups/${GROUP_ID}/transactions`;
+
   const membersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'groups', GROUP_ID, 'members');
+    return collection(firestore, membersPath);
   }, [firestore]);
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'groups', GROUP_ID, 'transactions');
+    return collection(firestore, transactionsPath);
   }, [firestore]);
 
-  const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersQuery);
-  const { data: transactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery);
-  
-  const paymentQueries = useMemoFirebase(() => {
-    if (!firestore || !policies) return [];
-    return policies.map(policy => 
-      query(collection(firestore, 'groups', GROUP_ID, 'insurancePolicies', policy.id, 'payments'))
-    );
-  }, [firestore, policies]);
-  
-  const allPayments = useMemo(() => {
-      let combined: InsurancePayment[] = [];
-      paymentQueries.forEach((_, index) => {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const { data } = useCollection<InsurancePayment>(paymentQueries[index]);
-        if (data) {
-          combined = [...combined, ...data];
-        }
-      });
-      return combined;
-  }, [paymentQueries]);
-  
-  const isLoadingInsurance = paymentQueries.some((_, index) => {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const { isLoading } = useCollection(paymentQueries[index]);
-      return isLoading;
-  });
+  const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersQuery, membersPath);
+  const { data: transactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery, transactionsPath);
+  const { data: allPayments, isLoading: isLoadingInsurance } = useAllInsurancePayments(policies);
 
 
   const activeMembers = useMemo(() => {

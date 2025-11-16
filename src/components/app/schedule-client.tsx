@@ -109,19 +109,22 @@ export default function ScheduleClient() {
   const form = useForm<z.infer<typeof editPayoutSchema>>({
     resolver: zodResolver(editPayoutSchema),
   });
+  
+  const membersPath = `groups/${GROUP_ID}/members`;
+  const schedulePath = `groups/${GROUP_ID}/savingsSchedules`;
 
   const membersQuery = useMemoFirebase(() => {
       if(!firestore) return null;
-      return collection(firestore, 'groups', GROUP_ID, 'members');
+      return collection(firestore, membersPath);
   }, [firestore]);
   
   const scheduleQuery = useMemoFirebase(() => {
     if(!firestore) return null;
-    return collection(firestore, 'groups', GROUP_ID, 'savingsSchedules');
+    return collection(firestore, schedulePath);
   }, [firestore]);
 
-  const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersQuery);
-  const { data: schedule, isLoading: isLoadingSchedule } = useCollection<ScheduleItem>(scheduleQuery);
+  const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersQuery, membersPath);
+  const { data: schedule, isLoading: isLoadingSchedule } = useCollection<ScheduleItem>(scheduleQuery, schedulePath);
 
 
   const activeMembers = useMemo(
