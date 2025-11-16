@@ -14,10 +14,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useAuth } from '@/firebase';
-import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
+import { initiateEmailSignUp, initiateGoogleSignIn } from '@/firebase/non-blocking-login';
 import { useRedirectIfAuthenticated } from '@/hooks/use-redirect-if-authenticated';
 import { useToast } from '@/hooks/use-toast';
 import { FirebaseError } from 'firebase/app';
+import { Icons } from '@/components/icons';
 
 export default function SignupPage() {
   useRedirectIfAuthenticated();
@@ -47,16 +48,40 @@ export default function SignupPage() {
     });
   };
 
+  const handleGoogleSignIn = () => {
+    initiateGoogleSignIn(auth).catch((error: FirebaseError) => {
+      toast({
+        variant: 'destructive',
+        title: 'Sign-in Failed',
+        description: 'Could not sign in with Google. Please try again.',
+      });
+    });
+  };
+
   return (
     <Card>
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Create an Account</CardTitle>
+        <CardTitle className="text-xl">Create an Account</CardTitle>
         <CardDescription>
-          Enter your details below to create your account
+          Choose your preferred sign-up method
         </CardDescription>
       </CardHeader>
-      <form onSubmit={handleSignUp}>
-        <CardContent className="grid gap-4">
+      <CardContent className="grid gap-4">
+         <Button variant="outline" onClick={handleGoogleSignIn}>
+          <Icons.google className="mr-2 size-4" />
+          Sign up with Google
+        </Button>
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
+        </div>
+        <form onSubmit={handleSignUp} className="space-y-4">
           <div className="grid gap-2">
             <Label htmlFor="name">Name</Label>
             <Input
@@ -89,22 +114,24 @@ export default function SignupPage() {
               required
             />
           </div>
-        </CardContent>
-        <CardFooter className="flex flex-col">
           <Button className="w-full" type="submit">
             Create Account
           </Button>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link
-              href="/login"
-              className="underline underline-offset-4 hover:text-primary"
-            >
-              Login
-            </Link>
-          </p>
-        </CardFooter>
-      </form>
+        </form>
+      </CardContent>
+      <CardFooter>
+        <p className="w-full text-center text-sm text-muted-foreground">
+          Already have an account?{' '}
+          <Link
+            href="/login"
+            className="underline underline-offset-4 hover:text-primary"
+          >
+            Login
+          </Link>
+        </p>
+      </CardFooter>
     </Card>
   );
 }
+
+    
