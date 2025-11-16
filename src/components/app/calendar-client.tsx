@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { PlusCircle, Bell, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -49,12 +50,33 @@ const eventSchema = z.object({
   description: z.string().optional(),
 });
 
+const getFirstSundayOfMonth = (year: number, month: number): Date => {
+    const firstDay = new Date(year, month, 1);
+    const dayOfWeek = firstDay.getDay(); // 0 = Sunday, 1 = Monday, ...
+    const dateOfFirstSunday = 1 + (7 - dayOfWeek) % 7;
+    return new Date(year, month, dateOfFirstSunday);
+}
 
 export default function CalendarClient() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const currentYear = new Date().getFullYear();
+    const monthlyMeetings: Event[] = [];
+    for (let month = 0; month < 12; month++) {
+      const meetingDate = getFirstSundayOfMonth(currentYear, month);
+      monthlyMeetings.push({
+        id: `MM-${currentYear}-${month}`,
+        title: "Monthly Meeting",
+        date: meetingDate,
+        description: "Group monthly general meeting.",
+      });
+    }
+    setEvents(monthlyMeetings);
+  }, []);
 
   const form = useForm<z.infer<typeof eventSchema>>({
     resolver: zodResolver(eventSchema),
@@ -80,6 +102,14 @@ export default function CalendarClient() {
   };
   
   const deleteEvent = (eventId: string) => {
+    if (eventId.startsWith('MM-')) {
+        toast({
+            variant: 'destructive',
+            title: "Action Not Allowed",
+            description: "Default monthly meetings cannot be deleted.",
+        });
+        return;
+    }
     setEvents(prev => prev.filter(event => event.id !== eventId));
     toast({
         variant: 'destructive',
