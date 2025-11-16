@@ -1,57 +1,99 @@
 'use client';
 import {
-  Auth, // Import Auth type for type hinting
+  Auth,
   signInAnonymously,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
-  // Assume getAuth and app are initialized elsewhere
+  FirebaseError,
 } from 'firebase/auth';
 
+type ErrorCallback = (errorMessage: string) => void;
+
+function getAuthErrorMessage(error: any): string {
+    if (error instanceof FirebaseError) {
+        switch (error.code) {
+            case 'auth/email-already-in-use':
+                return 'This email address is already in use by another account.';
+            case 'auth/invalid-email':
+                return 'The email address you entered is not valid.';
+            case 'auth/operation-not-allowed':
+                return 'Email/password accounts are not enabled. Please contact support.';
+            case 'auth/weak-password':
+                return 'The password is too weak. Please use a stronger password.';
+            case 'auth/user-disabled':
+                return 'This user account has been disabled.';
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+            case 'auth/invalid-credential':
+                return 'The email or password you entered is incorrect.';
+            case 'auth/popup-closed-by-user':
+                return 'The sign-in popup was closed before completing the sign-in.';
+            case 'auth/account-exists-with-different-credential':
+                return 'An account already exists with the same email address but different sign-in credentials.';
+            case 'auth/network-request-failed':
+                return 'A network error occurred. Please check your connection and try again.';
+            default:
+                return 'An unexpected error occurred. Please try again.';
+        }
+    }
+    return 'An unexpected error occurred. Please try again.';
+}
+
 /** Initiate anonymous sign-in (non-blocking). */
-export function initiateAnonymousSignIn(authInstance: Auth): void {
-  // CRITICAL: Call signInAnonymously directly. Do NOT use 'await signInAnonymously(...)'.
+export function initiateAnonymousSignIn(
+  authInstance: Auth,
+  onError: ErrorCallback
+): void {
   signInAnonymously(authInstance).catch(error => {
-    // Although not explicitly asked for, it's good practice to handle potential errors.
-    console.error('Anonymous sign-in error:', error);
+    onError(getAuthErrorMessage(error));
   });
-  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
 
 /** Initiate email/password sign-up (non-blocking). */
 export function initiateEmailSignUp(
   authInstance: Auth,
   email: string,
-  password: string
-): Promise<void> {
-  // CRITICAL: Call createUserWithEmailAndPassword directly and return the promise.
-  return createUserWithEmailAndPassword(authInstance, email, password).then(
-    () => {
-      // Success is handled by onAuthStateChanged, so nothing to do here.
-    }
-  );
-  // The returned promise will be used by the caller to handle errors.
+  password: string,
+  onError: ErrorCallback
+): void {
+  createUserWithEmailAndPassword(authInstance, email, password)
+    .then(() => {
+      // Success is handled by onAuthStateChanged listener.
+    })
+    .catch(error => {
+      onError(getAuthErrorMessage(error));
+    });
 }
 
 /** Initiate email/password sign-in (non-blocking). */
 export function initiateEmailSignIn(
   authInstance: Auth,
   email: string,
-  password: string
-): Promise<void> {
-  // CRITICAL: Call signInWithEmailAndPassword directly and return the promise.
-  return signInWithEmailAndPassword(authInstance, email, password).then(() => {
-    // Success is handled by onAuthStateChanged.
-  });
+  password: string,
+  onError: ErrorCallback
+): void {
+  signInWithEmailAndPassword(authInstance, email, password)
+    .then(() => {
+      // Success is handled by onAuthStateChanged listener.
+    })
+    .catch(error => {
+      onError(getAuthErrorMessage(error));
+    });
 }
 
 /** Initiate Google sign-in (non-blocking). */
-export function initiateGoogleSignIn(authInstance: Auth): Promise<void> {
+export function initiateGoogleSignIn(
+  authInstance: Auth,
+  onError: ErrorCallback
+): void {
   const provider = new GoogleAuthProvider();
-  return signInWithPopup(authInstance, provider).then(() => {
-    // Success is handled by onAuthStateChanged.
-  });
+  signInWithPopup(authInstance, provider)
+    .then(() => {
+      // Success is handled by onAuthStateChanged listener.
+    })
+    .catch(error => {
+      onError(getAuthErrorMessage(error));
+    });
 }
-
-    
