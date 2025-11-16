@@ -2,11 +2,12 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { PlusCircle, Bell, Trash2 } from "lucide-react";
+import { PlusCircle, Bell, Trash2, Bot, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
+import { createEventFromText } from "@/ai/flows/create-event-from-text";
 
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,6 +58,76 @@ const getFirstSundayOfMonth = (year: number, month: number): Date => {
     return new Date(year, month, dateOfFirstSunday);
 }
 
+function AiEventCreator({
+  onEventParsed,
+}: {
+  onEventParsed: (data: { title: string; date: Date; description?: string }) => void;
+}) {
+  const [prompt, setPrompt] = useState("");
+  const [isParsing, setIsParsing] = useState(false);
+  const { toast } = useToast();
+
+  const handleParse = async () => {
+    if (!prompt.trim()) return;
+    setIsParsing(true);
+    try {
+      const result = await createEventFromText({ prompt });
+      const eventDate = new Date(result.date);
+      // Adjust for timezone offset
+      const timezoneOffset = eventDate.getTimezoneOffset() * 60000;
+      const adjustedDate = new Date(eventDate.getTime() + timezoneOffset);
+
+      onEventParsed({
+        title: result.title,
+        date: adjustedDate,
+        description: result.description,
+      });
+      setPrompt("");
+    } catch (error) {
+      console.error("Failed to parse event:", error);
+      toast({
+        variant: "destructive",
+        title: "AI Error",
+        description: "Could not create event from the provided text.",
+      });
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Bot className="size-5" />
+          Create with AI
+        </CardTitle>
+        <CardDescription>
+          Describe the event you want to create, and AI will fill in the
+          details.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <Textarea
+            placeholder="e.g., Schedule a budget review meeting next Friday at 2pm"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+          />
+          <Button
+            onClick={handleParse}
+            disabled={isParsing}
+            className="w-full"
+          >
+            {isParsing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isParsing ? "Creating..." : "Create Event"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function CalendarClient() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
@@ -86,6 +157,11 @@ export default function CalendarClient() {
       description: "",
     },
   });
+  
+  const handleAiEventParsed = (data: { title: string; date: Date; description?: string }) => {
+    form.reset(data);
+    setIsAddDialogOpen(true);
+  };
 
   const onSubmit = (values: z.infer<typeof eventSchema>) => {
     const newEvent: Event = {
@@ -97,7 +173,7 @@ export default function CalendarClient() {
       title: "Event Created",
       description: `${values.title} has been added to the calendar.`,
     });
-    form.reset();
+    form.reset({ title: "", date: new Date(), description: "" });
     setIsAddDialogOpen(false);
   };
   
@@ -129,7 +205,12 @@ export default function CalendarClient() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Group Calendar</h1>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+            setIsAddDialogOpen(open);
+            if (!open) {
+                form.reset({ title: "", date: new Date(), description: "" });
+            }
+        }}>
             <DialogTrigger asChild>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" /> Add Event
@@ -213,25 +294,28 @@ export default function CalendarClient() {
         </Dialog>
       </div>
       <div className="grid h-full grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardContent className="p-2">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              className="w-full"
-              modifiers={{
-                events: events.map(e => e.date),
-              }}
-              modifiersStyles={{
-                events: {
-                  color: 'hsl(var(--primary-foreground))',
-                  backgroundColor: 'hsl(var(--primary))',
-                }
-              }}
-            />
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-2 space-y-4">
+           <Card>
+             <CardContent className="p-2">
+                <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className="w-full"
+                modifiers={{
+                    events: events.map(e => e.date),
+                }}
+                modifiersStyles={{
+                    events: {
+                    color: 'hsl(var(--primary-foreground))',
+                    backgroundColor: 'hsl(var(--primary))',
+                    }
+                }}
+                />
+             </CardContent>
+           </Card>
+           <AiEventCreator onEventParsed={handleAiEventParsed} />
+        </div>
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>
