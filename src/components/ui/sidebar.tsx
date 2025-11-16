@@ -3,20 +3,13 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft } from "lucide-react"
+import { PanelLeft, X } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -200,28 +193,36 @@ const Sidebar = React.forwardRef<
 
     if (isMobile) {
       return (
-        <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
-          <SheetContent
+        <>
+          {openMobile && (
+            <div
+              onClick={() => setOpenMobile(false)}
+              className="fixed inset-0 z-40 bg-black/50"
+            />
+          )}
+          <div
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
-            style={
-              {
-                "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-              } as React.CSSProperties
-            }
-            side={side}
+            className={cn(
+              'fixed top-0 h-full z-50 transition-transform transform',
+              side === 'left' ? 'left-0' : 'right-0',
+              openMobile ? 'translate-x-0' : (side === 'left' ? '-translate-x-full' : 'translate-x-full'),
+              'w-[--sidebar-width-mobile] bg-sidebar text-sidebar-foreground p-0 flex flex-col',
+              className
+            )}
+            style={{ '--sidebar-width-mobile': SIDEBAR_WIDTH_MOBILE } as React.CSSProperties}
+            {...props}
           >
-            <SheetHeader className="p-2 absolute">
-              <SheetTitle className="sr-only">Sidebar Navigation</SheetTitle>
-              <SheetDescription className="sr-only">
-                Use the links below to navigate the application.
-              </SheetDescription>
-            </SheetHeader>
-            <div className="flex h-full w-full flex-col">{children}</div>
-          </SheetContent>
-        </Sheet>
-      );
+            <div className="absolute top-2 right-2">
+              <Button variant="ghost" size="icon" onClick={() => setOpenMobile(false)}>
+                <X />
+                <span className="sr-only">Close sidebar</span>
+              </Button>
+            </div>
+            {children}
+          </div>
+        </>
+      )
     }
 
     return (
@@ -773,3 +774,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    

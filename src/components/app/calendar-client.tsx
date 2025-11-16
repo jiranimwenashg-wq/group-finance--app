@@ -33,7 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "../ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "../ui/scroll-area";
 import { Checkbox } from "../ui/checkbox";
@@ -409,7 +409,7 @@ export default function CalendarClient() {
                        {isRecurring && (
                           <Card className="bg-muted/50">
                             <CardContent className="pt-6">
-                              <div className="grid grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <FormField
                                   control={form.control}
                                   name="recurrence.frequency"
@@ -456,7 +456,7 @@ export default function CalendarClient() {
                                                   <Button
                                                   variant={"outline"}
                                                   className={cn(
-                                                      "w-[240px] pl-3 text-left font-normal",
+                                                      "w-full sm:w-[240px] pl-3 text-left font-normal",
                                                       !field.value && "text-muted-foreground"
                                                   )}
                                                   >
@@ -497,7 +497,7 @@ export default function CalendarClient() {
       <div className="grid h-full grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4">
            <Card>
-             <CardContent className="p-2">
+             <CardContent className="p-0 sm:p-2">
                 <Calendar
                 mode="single"
                 selected={selectedDate}
@@ -555,3 +555,5 @@ export default function CalendarClient() {
     </div>
   );
 }
+
+    

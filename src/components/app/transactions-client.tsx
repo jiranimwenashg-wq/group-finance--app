@@ -206,7 +206,7 @@ function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
 
   return (
     <div className="rounded-lg border shadow-sm">
-      <ScrollArea className="w-full whitespace-nowrap">
+      <div className="relative w-full overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -258,7 +258,7 @@ function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
             ))}
           </TableBody>
         </Table>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
@@ -528,3 +528,5 @@ export default function TransactionsClient({
     </div>
   );
 }
+
+    
