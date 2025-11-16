@@ -52,18 +52,11 @@ function OverviewCards({ transactions }: { transactions: Transaction[] }) {
       .filter((t) => t.type === 'Expense')
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const chartData = [
-      { month: 'May', income: 40000, expenses: 20000 },
-      { month: 'Jun', income: 35000, expenses: 10000 },
-      { month: 'Jul', income: 10200, expenses: 1500 },
-    ].map((d) => ({ ...d, expenses: d.expenses * -1 }));
-
     return {
       income,
       expenses,
       netChange: income + expenses,
       totalBalance: totalIncome + totalExpenses,
-      chartData,
     };
   }, [transactions]);
 

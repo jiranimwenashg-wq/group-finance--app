@@ -46,7 +46,6 @@ import {
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
-import { v4 as uuidv4 } from 'uuid';
 import { Skeleton } from '../ui/skeleton';
 
 const memberSchema = z.object({

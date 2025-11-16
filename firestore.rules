@@ -48,15 +48,6 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/groups/$(groupId)/users/$(request.auth.uid));
     }
 
-
-    /**
-     * @description Checks if the authenticated user is a valid group member for write operations.
-     * @details This function checks that the group ID in the path matches the `groupId` in the resource data.
-     */
-    function isValidGroupMemberForWrite(groupId) {
-      return isSignedIn() && request.resource.data.groupId == groupId;
-    }
-
     /**
      * @description Groups are the root-level entity. Any signed-in user can create a group.
      * @path /groups/{groupId}
@@ -105,8 +96,8 @@ service cloud.firestore {
       allow get: if isGroupMember(groupId);
       allow list: if isGroupMember(groupId);
 
-      allow create: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
-      allow update: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
+      allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
       allow delete: if isGroupMember(groupId);
     }
 
@@ -123,8 +114,8 @@ service cloud.firestore {
       allow get: if isGroupMember(groupId);
       allow list: if isGroupMember(groupId);
 
-      allow create: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
-      allow update: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
+      allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
       allow delete: if isGroupMember(groupId);
     }
 
@@ -141,8 +132,8 @@ service cloud.firestore {
       allow get: if isGroupMember(groupId);
       allow list: if isGroupMember(groupId);
 
-      allow create: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
-      allow update: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
+      allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
       allow delete: if isGroupMember(groupId);
     }
 
@@ -159,8 +150,8 @@ service cloud.firestore {
       allow get: if isGroupMember(groupId);
       allow list: if isGroupMember(groupId);
 
-      allow create: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
-      allow update: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
+      allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
       allow delete: if isGroupMember(groupId);
     }
 
@@ -177,8 +168,8 @@ service cloud.firestore {
       allow get: if isGroupMember(groupId);
       allow list: if isGroupMember(groupId);
 
-      allow create: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
-      allow update: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
+      allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
       allow delete: if isGroupMember(groupId);
     }
 
@@ -195,11 +186,9 @@ service cloud.firestore {
       allow get: if isGroupMember(groupId);
       allow list: if isGroupMember(groupId);
 
-      allow create: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
-      allow update: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
+      allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
       allow delete: if isGroupMember(groupId);
     }
   }
 }
-
-    
