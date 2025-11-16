@@ -1,11 +1,15 @@
+
 import TransactionsClient from "@/components/app/transactions-client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getTransactions } from "@/lib/data";
+import { getMembers, getTransactions } from "@/lib/data";
 import { Suspense } from "react";
 
 async function TransactionsData() {
-  const transactions = await getTransactions();
-  return <TransactionsClient initialTransactions={transactions} />;
+  const [transactions, members] = await Promise.all([
+    getTransactions(),
+    getMembers(),
+  ]);
+  return <TransactionsClient initialTransactions={transactions} members={members} />;
 }
 
 export default function TransactionsPage() {

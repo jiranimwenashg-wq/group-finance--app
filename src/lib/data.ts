@@ -1,3 +1,4 @@
+
 export type Member = {
   id: string;
   name: string;
@@ -13,6 +14,8 @@ export type Transaction = {
   amount: number;
   type: 'Income' | 'Expense';
   category: 'Contribution' | 'Late Fee' | 'Project' | 'Social Fund' | 'Operational';
+  memberId?: string;
+  memberName?: string;
 };
 
 export type InsurancePolicy = {
@@ -38,12 +41,12 @@ const members: Member[] = [
 ];
 
 const transactions: Transaction[] = [
-  { id: 'TRN001', date: new Date('2024-07-01'), description: 'July Contribution - Alice', amount: 5000, type: 'Income', category: 'Contribution' },
-  { id: 'TRN002', date: new Date('2024-07-01'), description: 'July Contribution - Bob', amount: 5000, type: 'Income', category: 'Contribution' },
+  { id: 'TRN001', date: new Date('2024-07-01'), description: 'July Contribution', amount: 5000, type: 'Income', category: 'Contribution', memberId: 'MEM001', memberName: 'Alice Johnson' },
+  { id: 'TRN002', date: new Date('2024-07-01'), description: 'July Contribution', amount: 5000, type: 'Income', category: 'Contribution', memberId: 'MEM002', memberName: 'Bob Williams' },
   { id: 'TRN003', date: new Date('2024-07-03'), description: 'Stationery purchase', amount: -1500, type: 'Expense', category: 'Operational' },
-  { id: 'TRN004', date: new Date('2024-07-05'), description: 'Late Fee - Charlie', amount: 200, type: 'Income', category: 'Late Fee' },
+  { id: 'TRN004', date: new Date('2024-07-05'), description: 'Late Fee payment', amount: 200, type: 'Income', category: 'Late Fee', memberId: 'MEM003', memberName: 'Charlie Brown' },
   { id: 'TRN005', date: new Date('2024-06-15'), description: 'Social Fund Payout', amount: -10000, type: 'Expense', category: 'Social Fund' },
-  { id: 'TRN006', date: new Date('2024-06-01'), description: 'June Contribution - All Members', amount: 35000, type: 'Income', category: 'Contribution' },
+  { id: 'TRN006', date: new Date('2024-06-01'), description: 'June Contribution', amount: 35000, type: 'Income', category: 'Contribution', memberName: 'All Members' },
   { id: 'TRN007', date: new Date('2024-05-20'), description: 'Project Alpha Supplies', amount: -50000, type: 'Expense', category: 'Project' },
 ];
 
@@ -126,5 +129,3 @@ export const getFinancialOverview = async () => {
         chartData
     };
 }
-
-    

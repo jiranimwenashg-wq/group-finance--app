@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -10,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import type { Transaction } from "@/lib/data";
+import type { Member, Transaction } from "@/lib/data";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -30,13 +31,22 @@ import {
   parseMpesaSms,
   ParseMpesaSmsOutput,
 } from "@/ai/flows/parse-mpesa-sms";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 type TransactionsClientProps = {
   initialTransactions: Transaction[];
+  members: Member[];
 };
 
 export default function TransactionsClient({
   initialTransactions,
+  members,
 }: TransactionsClientProps) {
   const [transactions, setTransactions] = useState(initialTransactions);
   const [smsText, setSmsText] = useState("");
@@ -73,13 +83,12 @@ export default function TransactionsClient({
       setIsParsing(false);
     }
   };
-  
-  const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "KES",
-  }).format(amount);
 
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "KES",
+    }).format(amount);
 
   return (
     <div className="space-y-4">
@@ -139,6 +148,25 @@ export default function TransactionsClient({
                   <Input id="description" className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="member" className="text-right">
+                    Member
+                  </Label>
+                  <Select>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select a member (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {members
+                        .filter((m) => m.status === "Active")
+                        .map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="amount" className="text-right">
                     Amount
                   </Label>
@@ -159,6 +187,7 @@ export default function TransactionsClient({
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
+              <TableHead>Member</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Type</TableHead>
@@ -171,6 +200,7 @@ export default function TransactionsClient({
                 <TableCell>
                   {transaction.date.toLocaleDateString()}
                 </TableCell>
+                <TableCell>{transaction.memberName || "N/A"}</TableCell>
                 <TableCell className="font-medium">
                   {transaction.description}
                 </TableCell>
