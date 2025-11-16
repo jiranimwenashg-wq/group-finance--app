@@ -40,6 +40,14 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
+    
+    /**
+     * @description Checks if the current user is a member of the specified group.
+     */
+    function isGroupMember(groupId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/groups/$(groupId)/users/$(request.auth.uid));
+    }
+
 
     /**
      * @description Checks if the authenticated user is a valid group member for write operations.
@@ -47,14 +55,6 @@ service cloud.firestore {
      */
     function isValidGroupMemberForWrite(groupId) {
       return isSignedIn() && request.resource.data.groupId == groupId;
-    }
-
-    /**
-     * @description Checks if the authenticated user is a valid group member for update or delete operations.
-     * @details This function checks that the group ID in the path matches the `groupId` in the existing resource data.
-     */
-    function isValidGroupMemberForUpdateAndDelete(groupId) {
-        return isSignedIn() && resource.data.groupId == groupId;
     }
 
     /**
@@ -67,11 +67,11 @@ service cloud.firestore {
      * @principle Allows authenticated users to create groups, enforcing basic authentication.
      */
     match /groups/{groupId} {
-      allow get: if isSignedIn();
+      allow get: if isGroupMember(groupId);
       allow list: if false; // Prevent listing all groups.
 
       allow create: if isSignedIn() && request.resource.data.id == groupId;
-      allow update: if isSignedIn() && request.resource.data.id == groupId;
+      allow update: if isGroupMember(groupId) && request.resource.data.id == groupId;
       allow delete: if false;
     }
 
@@ -102,12 +102,12 @@ service cloud.firestore {
      * @principle Restricts access to transactions based on group membership; enforces group-level scoping.
      */
     match /groups/{groupId}/transactions/{transactionId} {
-      allow get: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
-      allow list: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
+      allow get: if isGroupMember(groupId);
+      allow list: if isGroupMember(groupId);
 
-      allow create: if isSignedIn() && isValidGroupMemberForWrite(groupId);
-      allow update: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
-      allow delete: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
+      allow create: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow update: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow delete: if isGroupMember(groupId);
     }
 
     /**
@@ -120,12 +120,12 @@ service cloud.firestore {
      * @principle Restricts access to members based on group membership; enforces group-level scoping.
      */
     match /groups/{groupId}/members/{memberId} {
-      allow get: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
-      allow list: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
+      allow get: if isGroupMember(groupId);
+      allow list: if isGroupMember(groupId);
 
-      allow create: if isSignedIn() && isValidGroupMemberForWrite(groupId);
-      allow update: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
-      allow delete: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
+      allow create: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow update: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow delete: if isGroupMember(groupId);
     }
 
     /**
@@ -138,12 +138,12 @@ service cloud.firestore {
      * @principle Restricts access to insurance policies based on group membership; enforces group-level scoping.
      */
     match /groups/{groupId}/insurancePolicies/{insurancePolicyId} {
-      allow get: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
-      allow list: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
+      allow get: if isGroupMember(groupId);
+      allow list: if isGroupMember(groupId);
 
-      allow create: if isSignedIn() && isValidGroupMemberForWrite(groupId);
-      allow update: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
-      allow delete: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
+      allow create: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow update: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow delete: if isGroupMember(groupId);
     }
 
     /**
@@ -156,12 +156,12 @@ service cloud.firestore {
      * @principle Restricts access to insurance payments based on member's group membership.
      */
     match /groups/{groupId}/members/{memberId}/insurancePayments/{insurancePaymentId} {
-      allow get: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
-      allow list: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
+      allow get: if isGroupMember(groupId);
+      allow list: if isGroupMember(groupId);
 
-      allow create: if isSignedIn() && isValidGroupMemberForWrite(groupId);
-      allow update: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
-      allow delete: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
+      allow create: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow update: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow delete: if isGroupMember(groupId);
     }
 
     /**
@@ -174,12 +174,12 @@ service cloud.firestore {
      * @principle Restricts access to constitution documents based on group membership; enforces group-level scoping.
      */
     match /groups/{groupId}/constitutions/{constitutionId} {
-      allow get: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
-      allow list: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
+      allow get: if isGroupMember(groupId);
+      allow list: if isGroupMember(groupId);
 
-      allow create: if isSignedIn() && isValidGroupMemberForWrite(groupId);
-      allow update: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
-      allow delete: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
+      allow create: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow update: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow delete: if isGroupMember(groupId);
     }
 
     /**
@@ -192,12 +192,14 @@ service cloud.firestore {
      * @principle Restricts access to savings schedule documents based on group membership; enforces group-level scoping.
      */
     match /groups/{groupId}/savingsSchedules/{savingsScheduleId} {
-      allow get: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
-      allow list: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
+      allow get: if isGroupMember(groupId);
+      allow list: if isGroupMember(groupId);
 
-      allow create: if isSignedIn() && isValidGroupMemberForWrite(groupId);
-      allow update: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
-      allow delete: if isSignedIn() && isValidGroupMemberForUpdateAndDelete(groupId);
+      allow create: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow update: if isGroupMember(groupId) && isValidGroupMemberForWrite(groupId);
+      allow delete: if isGroupMember(groupId);
     }
   }
 }
+
+    
