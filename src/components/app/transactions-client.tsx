@@ -65,13 +65,24 @@ export default function TransactionsClient({
     }
     setIsParsing(true);
     try {
-      const result: ParseMpesaSmsOutput = await parseMpesaSms({ smsText });
+      const activeMembers = members.filter(m => m.status === 'Active').map(m => ({ id: m.id, name: m.name }));
+      const result: ParseMpesaSmsOutput = await parseMpesaSms({ smsText, members: activeMembers });
+      
+      let toastDescription = `Amount: ${result.amount}, From/To: ${result.senderRecipient}`;
+      if (result.memberId) {
+        const member = members.find(m => m.id === result.memberId);
+        if (member) {
+            toastDescription += ` (Matched to ${member.name})`;
+        }
+      }
+
       toast({
         title: "SMS Parsed Successfully",
-        description: `Amount: ${result.amount}, From/To: ${result.senderRecipient}`,
+        description: toastDescription,
       });
+
       // Here you would typically pre-fill a form with the parsed data
-      // For this demo, we just show a toast.
+      // For this demo, we just show a toast and could pre-fill the add dialog
     } catch (error) {
       console.error("Failed to parse SMS:", error);
       toast({
@@ -105,7 +116,7 @@ export default function TransactionsClient({
               <DialogHeader>
                 <DialogTitle>AI-Powered SMS Parser</DialogTitle>
                 <DialogDescription>
-                  Paste your M-Pesa SMS below and let AI extract the details.
+                  Paste your M-Pesa SMS below and let AI extract the details and match it to a member.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-2">
