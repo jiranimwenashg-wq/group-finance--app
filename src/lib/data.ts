@@ -30,6 +30,16 @@ export type InsurancePayment = {
   payments: Record<string, 'Paid' | 'Unpaid' | 'Waived'>; // Key is month "YYYY-MM"
 };
 
+export type Group = {
+  id: string;
+  name: string;
+  currency: string;
+};
+
+
+// Hardcoded Group ID for the entire application
+export const GROUP_ID = 'primary-group';
+
 const members: Member[] = [
   { id: 'MEM001', name: 'Alice Johnson', phone: '+254712345678', joinDate: new Date('2023-01-15'), status: 'Active' },
   { id: 'MEM002', name: 'Bob Williams', phone: '+254712345679', joinDate: new Date('2023-02-20'), status: 'Active' },

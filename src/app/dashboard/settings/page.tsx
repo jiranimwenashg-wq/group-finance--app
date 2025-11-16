@@ -31,32 +31,82 @@ import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { GROUP_ID, type Group } from '@/lib/data';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const groupProfileSchema = z.object({
-  groupName: z.string().min(1, 'Group name is required'),
+  name: z.string().min(1, 'Group name is required'),
   currency: z.string(),
 });
 
 function GroupProfileCard() {
   const { toast } = useToast();
+  const firestore = useFirestore();
+
+  const groupRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'groups', GROUP_ID);
+  }, [firestore]);
+
+  const { data: group, isLoading } = useDoc<Group>(groupRef);
+
   const form = useForm<z.infer<typeof groupProfileSchema>>({
     resolver: zodResolver(groupProfileSchema),
     defaultValues: {
-      groupName: 'Finance Club',
+      name: '',
       currency: 'KES',
     },
   });
 
+  useEffect(() => {
+    if (group) {
+      form.reset({
+        name: group.name,
+        currency: group.currency,
+      });
+    }
+  }, [group, form]);
+
   const onSubmit = (values: z.infer<typeof groupProfileSchema>) => {
-    console.log(values);
+    if (!groupRef) return;
+    setDocumentNonBlocking(groupRef, 
+        { ...values, id: GROUP_ID },
+        { merge: true }
+    );
     toast({
       title: 'Changes Saved',
       description: 'Your group profile has been updated.',
     });
   };
+  
+   if (isLoading) {
+    return (
+      <Card className="lg:col-span-1">
+        <CardHeader>
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-4 w-48" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Skeleton className="h-10 w-32" />
+        </CardFooter>
+      </Card>
+    );
+  }
 
   return (
     <Card className="lg:col-span-1">
@@ -71,7 +121,7 @@ function GroupProfileCard() {
           <CardContent className="space-y-4">
             <FormField
               control={form.control}
-              name="groupName"
+              name="name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Group Name</FormLabel>
@@ -91,6 +141,7 @@ function GroupProfileCard() {
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
