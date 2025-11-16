@@ -26,10 +26,30 @@ export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || !name) return;
+    if (!email || !password || !name || !confirmPassword) return;
+
+    if (password.length < 6) {
+        toast({
+            variant: 'destructive',
+            title: 'Sign-up Failed',
+            description: 'Password must be at least 6 characters long.',
+        });
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        toast({
+            variant: 'destructive',
+            title: 'Sign-up Failed',
+            description: 'Passwords do not match.',
+        });
+        return;
+    }
+
     initiateEmailSignUp(auth, email, password, (error) => {
         toast({
             variant: 'destructive',
@@ -111,6 +131,16 @@ export default function SignupPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    required
+                    />
+                </div>
+                 <div className="grid gap-2">
+                    <Label htmlFor="confirm-password">Confirm Password</Label>
+                    <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     />
                 </div>
