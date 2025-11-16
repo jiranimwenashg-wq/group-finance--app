@@ -6,13 +6,10 @@ import React, {
   useContext,
   ReactNode,
   useMemo,
-  useState,
-  useEffect,
 } from 'react';
 import type { FirebaseApp } from 'firebase/app';
 import type { Firestore } from 'firebase/firestore';
 import type { Auth, User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 interface FirebaseProviderProps {
@@ -22,31 +19,16 @@ interface FirebaseProviderProps {
   auth: Auth;
 }
 
-interface UserAuthState {
-  user: User | null;
-  isUserLoading: boolean;
-  userError: Error | null;
-}
-
 export interface FirebaseContextState {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
-  user: User | null;
-  isUserLoading: boolean;
-  userError: Error | null;
 }
 
 export interface FirebaseServicesAndUser {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
-  user: User | null;
-  isUserLoading: boolean;
-  userError: Error | null;
-}
-
-export interface UserHookResult {
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
@@ -62,40 +44,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   firestore,
   auth,
 }) => {
-  const [userAuthState, setUserAuthState] = useState<UserAuthState>({
-    user: auth.currentUser, // Initialize with the current user
-    isUserLoading: true,
-    userError: null,
-  });
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (firebaseUser) => {
-        setUserAuthState({
-          user: firebaseUser,
-          isUserLoading: false,
-          userError: null,
-        });
-      },
-      (error) => {
-        console.error('FirebaseProvider: onAuthStateChanged error:', error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error });
-      }
-    );
-    return () => unsubscribe();
-  }, [auth]);
-
   const contextValue = useMemo((): FirebaseContextState => {
     return {
       firebaseApp,
       firestore,
       auth,
-      user: userAuthState.user,
-      isUserLoading: userAuthState.isUserLoading,
-      userError: userAuthState.userError,
     };
-  }, [firebaseApp, firestore, auth, userAuthState]);
+  }, [firebaseApp, firestore, auth]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -113,14 +68,14 @@ function useFirebaseContext() {
   return context;
 }
 
-export const useFirebase = (): FirebaseServicesAndUser => {
+export const useFirebase = (): Omit<FirebaseContextState, 'user' | 'isUserLoading' | 'userError'> => {
   const context = useFirebaseContext();
   if (!context.firebaseApp || !context.firestore || !context.auth) {
     throw new Error(
       'Firebase core services not available. Check FirebaseProvider props.'
     );
   }
-  return context as FirebaseServicesAndUser;
+  return context;
 };
 
 export const useAuth = (): Auth => {
@@ -154,8 +109,3 @@ export function useMemoFirebase<T>(
 
   return memoized;
 }
-
-export const useUser = (): UserHookResult => {
-  const { user, isUserLoading, userError } = useFirebaseContext();
-  return { user, isUserLoading, userError };
-};
