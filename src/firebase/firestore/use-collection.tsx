@@ -42,7 +42,7 @@ export interface UseCollectionResult<T> {
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
-    pathId?: string
+    pathId: string
 ): UseCollectionResult<T> {
   type ResultItemType = WithId<T>;
   type StateDataType = ResultItemType[] | null;
@@ -75,20 +75,9 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        let path: string;
-        if (pathId) {
-            path = pathId;
-        } else if ('path' in memoizedTargetRefOrQuery) {
-          path = (memoizedTargetRefOrQuery as CollectionReference).path;
-        } else {
-          // Fallback for queries - this is a simplification and might not cover all edge cases
-          // for very complex queries, but works for simple collection queries.
-          path = (memoizedTargetRefOrQuery as Query)._query.path.segments.join('/');
-        }
-        
         const contextualError = new FirestorePermissionError({
           operation: 'list',
-          path,
+          path: pathId,
         })
 
         setError(contextualError)
