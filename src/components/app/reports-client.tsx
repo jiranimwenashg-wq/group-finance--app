@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { placeholderImages } from '@/lib/placeholder-images';
 import { generateMemberReport } from '@/ai/flows/generate-member-report';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import Link from 'next/link';
 
 interface MemberReportCardProps {
   member: Member;
@@ -37,7 +38,9 @@ function MemberReportCard({ member, transactions, insurancePayments, policies }:
   }, [insurancePayments, policies, member.id]);
 
 
-  const getReport = async () => {
+  const getReport = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsLoading(true);
     try {
       const input = {
@@ -69,14 +72,14 @@ function MemberReportCard({ member, transactions, insurancePayments, policies }:
 
 
   return (
-    <Card>
+    <Card className="transition-all hover:shadow-md">
       <CardHeader className="flex flex-row items-center gap-4">
-        {userAvatar && (
-            <Avatar>
+        <Avatar>
+            {userAvatar ? (
                 <AvatarImage src={userAvatar.imageUrl} alt={member.name} data-ai-hint={userAvatar.imageHint} />
-                <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-        )}
+            ) : null}
+            <AvatarFallback><User /></AvatarFallback>
+        </Avatar>
         <div className="flex-1">
           <CardTitle>{member.name}</CardTitle>
           <CardDescription>
@@ -129,13 +132,14 @@ export default function ReportsClient({ members, transactions, insurancePayments
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {activeMembers.map((member) => (
-          <MemberReportCard
-            key={member.id}
-            member={member}
-            transactions={transactions}
-            insurancePayments={insurancePayments}
-            policies={policies}
-          />
+          <Link key={member.id} href={`/dashboard/members#${member.name.replace(/\s+/g, '-')}`} className="no-underline">
+            <MemberReportCard
+              member={member}
+              transactions={transactions}
+              insurancePayments={insurancePayments}
+              policies={policies}
+            />
+          </Link>
         ))}
       </div>
     </div>
