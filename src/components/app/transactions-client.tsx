@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
@@ -24,7 +25,7 @@ import {
   DialogTrigger,
 } from '../ui/dialog';
 import { Textarea } from '../ui/textarea';
-import { Bot, Download, PlusCircle, Upload } from 'lucide-react';
+import { Bot, Download, PlusCircle, Upload, Copy, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   parseMpesaSms,
@@ -274,6 +275,19 @@ const formatCurrency = (amount: number) =>
     style: 'currency',
     currency: 'KES',
   }).format(amount);
+  
+function formatTransactionsForWhatsApp(transactions: Transaction[]): string {
+  const header = `*FinanceFlow AI - Recent Transactions*`;
+
+  const items = transactions.map((t, index) => {
+    const date = new Date(t.date).toLocaleDateString('en-GB'); // DD/MM/YYYY
+    const sign = t.type === 'Income' ? '+' : '-';
+    const member = t.memberName ? ` (${t.memberName})` : '';
+    return `${index + 1}. ${t.description}${member} - ${sign}${formatCurrency(Math.abs(t.amount))} on ${date}`;
+  }).join('\n');
+
+  return `${header}\n\n${items}`;
+}
 
 function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
   return (
@@ -364,6 +378,53 @@ function TableSkeleton() {
             </Table>
         </div>
     )
+}
+
+function WhatsAppExportDialog({ transactions }: { transactions: Transaction[] }) {
+    const { toast } = useToast();
+    const [open, setOpen] = useState(false);
+
+    const recentTransactions = useMemo(() => {
+        return transactions
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 5);
+    }, [transactions]);
+    
+    const formattedText = useMemo(() => formatTransactionsForWhatsApp(recentTransactions), [recentTransactions]);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(formattedText);
+        toast({
+            title: "Copied to Clipboard",
+            description: "The transaction summary is ready to be pasted.",
+        });
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline">
+                    <Share2 className="mr-2 h-4 w-4" /> Export for WhatsApp
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Export for WhatsApp</DialogTitle>
+                    <DialogDescription>
+                        Copy this message and paste it into your WhatsApp group chat.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="my-4 rounded-lg border bg-muted p-4">
+                    <pre className="whitespace-pre-wrap text-sm text-muted-foreground">{formattedText}</pre>
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleCopy} className="w-full">
+                        <Copy className="mr-2 h-4 w-4" /> Copy to Clipboard
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 export default function TransactionsClient() {
@@ -639,7 +700,7 @@ export default function TransactionsClient() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-
+           <WhatsAppExportDialog transactions={transactions || []} />
           <AddTransactionDialog members={members || []} />
         </div>
       </div>
@@ -680,3 +741,5 @@ export default function TransactionsClient() {
     </div>
   );
 }
+
+    
