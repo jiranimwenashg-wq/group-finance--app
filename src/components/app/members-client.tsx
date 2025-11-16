@@ -36,11 +36,18 @@ import {
   FormMessage,
 } from '../ui/form';
 import { Input } from '../ui/input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/card';
-
-type MembersClientProps = {
-  initialMembers: Member[];
-};
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from '../ui/card';
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { GROUP_ID } from '@/lib/data';
+import { v4 as uuidv4 } from 'uuid';
+import { Skeleton } from '../ui/skeleton';
 
 const memberSchema = z.object({
   name: z.string().min(1, { message: 'Name is required' }),
@@ -50,7 +57,7 @@ const memberSchema = z.object({
 function AddMemberDialog({
   onAddMember,
 }: {
-  onAddMember: (member: Omit<Member, 'id' | 'joinDate' | 'status'>) => void;
+  onAddMember: (member: Omit<Member, 'id' | 'joinDate' | 'status' | 'groupId'>) => void;
 }) {
   const [open, setOpen] = useState(false);
   const form = useForm<z.infer<typeof memberSchema>>({
@@ -123,28 +130,68 @@ function AddMemberDialog({
   );
 }
 
-export default function MembersClient({ initialMembers }: MembersClientProps) {
-  const [members, setMembers] = useState(initialMembers);
+function TableSkeleton() {
+    return (
+        <div className="rounded-lg border shadow-sm">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead><Skeleton className="h-5 w-32" /></TableHead>
+                        <TableHead><Skeleton className="h-5 w-32" /></TableHead>
+                        <TableHead><Skeleton className="h-5 w-24" /></TableHead>
+                        <TableHead><Skeleton className="h-5 w-20" /></TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {[...Array(5)].map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-36" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-36" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    )
+}
+
+export default function MembersClient() {
   const [filter, setFilter] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const firestore = useFirestore();
+
+  const membersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'groups', GROUP_ID, 'members');
+  }, [firestore]);
+
+  const { data: members, isLoading } = useCollection<Member>(membersQuery);
+
 
   const filteredMembers = useMemo(() => {
-    return members.filter(member => 
+    if (!members) return [];
+    return members.filter((member) =>
       member.name.toLowerCase().includes(filter.toLowerCase())
     );
   }, [members, filter]);
 
   const handleAddMember = (
-    newMemberData: Omit<Member, 'id' | 'joinDate' | 'status'>
+    newMemberData: Omit<Member, 'id' | 'joinDate' | 'status' | 'groupId'>
   ) => {
-    const newMember: Member = {
+    if (!firestore) return;
+    const newMember: Omit<Member, 'id'> = {
       ...newMemberData,
-      id: `MEM${Date.now()}`,
       joinDate: new Date(),
       status: 'Active',
+      groupId: GROUP_ID,
     };
-    setMembers((prev) => [newMember, ...prev]);
+    
+    const membersRef = collection(firestore, 'groups', GROUP_ID, 'members');
+    addDocumentNonBlocking(membersRef, newMember);
+
     toast({
       title: 'Member Added',
       description: `${newMember.name} has been successfully added.`,
@@ -170,6 +217,7 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!firestore) return;
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -181,6 +229,8 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
       });
       return;
     }
+    
+    const membersRef = collection(firestore, 'groups', GROUP_ID, 'members');
 
     Papa.parse<Record<string, string>>(file, {
       header: true,
@@ -203,19 +253,25 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
           return;
         }
 
-        const newMembers: Member[] = results.data.map((row, index) => ({
-          id: `MEM${Date.now()}${index}`,
-          name: row.name,
-          phone: row.phone,
-          joinDate: new Date(),
-          status: 'Active',
-        }));
-
-        setMembers((prev) => [...prev, ...newMembers]);
-        toast({
-          title: 'Import Successful',
-          description: `${newMembers.length} members have been added.`,
+        let importedCount = 0;
+        results.data.forEach((row) => {
+          const newMember: Omit<Member, 'id'> = {
+            name: row.name,
+            phone: row.phone,
+            joinDate: new Date(),
+            status: 'Active',
+            groupId: GROUP_ID,
+          };
+          addDocumentNonBlocking(membersRef, newMember);
+          importedCount++;
         });
+
+        if(importedCount > 0){
+          toast({
+            title: 'Import Successful',
+            description: `${importedCount} members have been added.`,
+          });
+        }
       },
       error: (error) => {
         toast({
@@ -233,8 +289,10 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight">Members</h1>
-            <p className="text-muted-foreground">Manage your group's members and their details.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Members</h1>
+          <p className="text-muted-foreground">
+            Manage your group's members and their details.
+          </p>
         </div>
         <div className="flex shrink-0 gap-2">
           <Button variant="outline" onClick={handleDownloadTemplate}>
@@ -256,10 +314,8 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
       <Card>
         <CardHeader>
           <CardTitle>Member List</CardTitle>
-          <CardDescription>
-            Search for members by their name.
-          </CardDescription>
-          <Input 
+          <CardDescription>Search for members by their name.</CardDescription>
+          <Input
             placeholder="Filter members by name..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -267,45 +323,49 @@ export default function MembersClient({ initialMembers }: MembersClientProps) {
           />
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border shadow-sm">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Join Date</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMembers.map((member) => (
-                  <TableRow key={member.id} id={member.name.replace(/\s+/g, '-')}>
-                    <TableCell className="font-medium">{member.name}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-sm">{member.phone}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{member.joinDate.toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          member.status === 'Active' ? 'default' : 'outline'
-                        }
-                        className={
-                          member.status === 'Active'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                            : ''
-                        }
-                      >
-                        {member.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+            {isLoading ? <TableSkeleton /> : (
+            <div className="rounded-lg border shadow-sm">
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Join Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredMembers.map((member) => (
+                    <TableRow key={member.id} id={member.name.replace(/\s+/g, '-')}>
+                        <TableCell className="font-medium">{member.name}</TableCell>
+                        <TableCell>
+                        <div className="flex flex-col">
+                            <span className="text-sm">{member.phone}</span>
+                        </div>
+                        </TableCell>
+                        <TableCell>
+                        {new Date(member.joinDate).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                        <Badge
+                            variant={
+                            member.status === 'Active' ? 'default' : 'outline'
+                            }
+                            className={
+                            member.status === 'Active'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                                : ''
+                            }
+                        >
+                            {member.status}
+                        </Badge>
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+                </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

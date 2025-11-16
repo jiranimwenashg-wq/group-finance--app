@@ -24,10 +24,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { Input } from '../ui/input';
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { GROUP_ID } from '@/lib/data';
+import { Skeleton } from '../ui/skeleton';
 
 type InsuranceClientProps = {
-  initialPayments: InsurancePayment[];
-  members: Member[];
   policies: InsurancePolicy[];
 };
 
@@ -37,24 +39,66 @@ const formatCurrency = (amount: number) =>
     currency: 'KES',
   }).format(amount);
 
+function TableSkeleton() {
+    return (
+        <div className="rounded-lg border shadow-sm">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead><Skeleton className="h-5 w-32" /></TableHead>
+                        <TableHead><Skeleton className="h-5 w-20" /></TableHead>
+                        {[...Array(12)].map((_, i) => (
+                           <TableHead key={i}><Skeleton className="h-5 w-10 mx-auto" /></TableHead>
+                        ))}
+                        <TableHead className="text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {[...Array(5)].map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-36" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                             {[...Array(12)].map((_, j) => (
+                                <TableCell key={j}><Skeleton className="h-5 w-5 mx-auto" /></TableCell>
+                            ))}
+                            <TableCell><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    )
+}
+
 export default function InsuranceClient({
-  initialPayments,
-  members,
   policies,
 }: InsuranceClientProps) {
-  const [payments, setPayments] = useState(initialPayments);
   const [selectedPolicyId, setSelectedPolicyId] = useState<string>(
     policies[0].id
   );
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [filter, setFilter] = useState('');
+  const firestore = useFirestore();
 
+  const membersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'groups', GROUP_ID, 'members');
+  }, [firestore]);
+
+  const paymentsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'groups', GROUP_ID, 'insurancePayments');
+  }, [firestore]);
+  
+  const {data: members, isLoading: isLoadingMembers} = useCollection<Member>(membersQuery);
+  const {data: payments, isLoading: isLoadingPayments} = useCollection<InsurancePayment>(paymentsQuery);
+  
   const activeMembers = useMemo(
-    () => members.filter(m => 
+    () => members?.filter(m => 
       m.status === 'Active' && 
       m.name.toLowerCase().includes(filter.toLowerCase())
-    ),
+    ) || [],
     [members, filter]
   );
   const selectedPolicy = useMemo(
@@ -69,59 +113,51 @@ export default function InsuranceClient({
   );
 
   const filteredPayments = useMemo(
-    () => payments.filter(p => p.policyId === selectedPolicyId),
+    () => payments?.filter(p => p.policyId === selectedPolicyId) || [],
     [payments, selectedPolicyId]
   );
 
   const handlePaymentChange = (
-    memberId: string,
-    policyId: string,
+    payment: InsurancePayment,
     month: string,
     checked: boolean
   ) => {
-    setPayments(prevPayments => {
-      const paymentIndex = prevPayments.findIndex(
-        p => p.memberId === memberId && p.policyId === policyId
-      );
-      if (paymentIndex === -1) return prevPayments;
+    if(!firestore) return;
+    const paymentRef = doc(firestore, 'groups', GROUP_ID, 'insurancePayments', payment.id);
 
-      const newPayments = [...prevPayments];
-      const paymentToUpdate = { ...newPayments[paymentIndex] };
-      paymentToUpdate.payments = { ...paymentToUpdate.payments };
-      paymentToUpdate.payments[month] = checked ? 'Paid' : 'Unpaid';
-      newPayments[paymentIndex] = paymentToUpdate;
-      return newPayments;
-    });
+    const newPayments = { ...payment.payments };
+    newPayments[month] = checked ? 'Paid' : 'Unpaid';
+    
+    setDocumentNonBlocking(paymentRef, { payments: newPayments }, { merge: true });
   };
   
   const handleMarkMonthAsPaid = () => {
-    const monthKey = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}`;
-    setPayments(prevPayments => {
-        const newPayments = [...prevPayments];
-        activeMembers.forEach(member => {
-            const paymentIndex = newPayments.findIndex(p => p.memberId === member.id && p.policyId === selectedPolicyId);
-            if (paymentIndex !== -1) {
-                const paymentToUpdate = { ...newPayments[paymentIndex] };
-                paymentToUpdate.payments = { ...paymentToUpdate.payments };
-                if (paymentToUpdate.payments[monthKey] !== 'Waived') {
-                    paymentToUpdate.payments[monthKey] = 'Paid';
+     if(!firestore || !activeMembers || !payments) return;
+     const monthKey = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}`;
+
+     activeMembers.forEach(member => {
+        const payment = payments.find(p => p.memberId === member.id && p.policyId === selectedPolicyId);
+        if (payment && payment.payments[monthKey] !== 'Waived') {
+            const paymentRef = doc(firestore, 'groups', GROUP_ID, 'insurancePayments', payment.id);
+            setDocumentNonBlocking(paymentRef, {
+                payments: {
+                    ...payment.payments,
+                    [monthKey]: 'Paid',
                 }
-                newPayments[paymentIndex] = paymentToUpdate;
-            }
-        });
-        return newPayments;
+            }, { merge: true });
+        }
     });
   };
 
   const monthlyStats = useMemo(() => {
-    const allActiveMembers = members.filter(m => m.status === 'Active');
+    const allActiveMembers = members?.filter(m => m.status === 'Active') || [];
     const monthKey = `${selectedYear}-${(selectedMonth + 1)
       .toString()
       .padStart(2, '0')}`;
     const totalPossible = allActiveMembers.length * selectedPolicy.monthlyPremium;
     let collected = 0;
 
-    payments.filter(p => p.policyId === selectedPolicyId).forEach(p => {
+    payments?.filter(p => p.policyId === selectedPolicyId).forEach(p => {
       if (
         allActiveMembers.some(am => am.id === p.memberId) &&
         p.payments[monthKey] === 'Paid'
@@ -148,6 +184,8 @@ export default function InsuranceClient({
     new Date().getFullYear(),
     new Date().getFullYear() - 1,
   ];
+
+  const isLoading = isLoadingMembers || isLoadingPayments;
 
   return (
     <div className="space-y-4">
@@ -193,7 +231,7 @@ export default function InsuranceClient({
             <CardTitle className="text-sm font-medium">Total Premiums ({months[selectedMonth].toLocaleString('default', { month: 'long' })})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(monthlyStats.total)}</div>
+            {isLoading ? <Skeleton className="h-8 w-24"/> : <div className="text-2xl font-bold">{formatCurrency(monthlyStats.total)}</div>}
           </CardContent>
         </Card>
         <Card>
@@ -201,7 +239,7 @@ export default function InsuranceClient({
             <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(monthlyStats.collected)}</div>
+             {isLoading ? <Skeleton className="h-8 w-24"/> : <div className="text-2xl font-bold text-green-600">{formatCurrency(monthlyStats.collected)}</div>}
           </CardContent>
         </Card>
         <Card>
@@ -209,7 +247,7 @@ export default function InsuranceClient({
             <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{formatCurrency(monthlyStats.outstanding)}</div>
+             {isLoading ? <Skeleton className="h-8 w-24"/> : <div className="text-2xl font-bold text-destructive">{formatCurrency(monthlyStats.outstanding)}</div>}
           </CardContent>
         </Card>
       </div>
@@ -243,6 +281,7 @@ export default function InsuranceClient({
             </div>
           </CardHeader>
           <CardContent>
+            {isLoading ? <TableSkeleton /> : (
             <div className="rounded-lg border shadow-sm">
                 <Table>
                 <TableHeader>
@@ -312,13 +351,12 @@ export default function InsuranceClient({
 
                             return (
                             <TableCell key={monthKey} className="text-center">
-                                {status ? (
+                                {memberPayment ? (
                                 <Checkbox
                                     checked={status === 'Paid'}
                                     onCheckedChange={checked =>
                                     handlePaymentChange(
-                                        member.id,
-                                        selectedPolicyId,
+                                        memberPayment,
                                         monthKey,
                                         !!checked
                                     )
@@ -337,8 +375,8 @@ export default function InsuranceClient({
                         })}
                          <TableCell className="text-right">
                              <div className="flex items-center gap-2 justify-end">
-                                <span>{annualStats.paid}/{annualStats.total}</span>
-                                <Progress value={(annualStats.paid / annualStats.total) * 100} className="w-16 h-2" />
+                                <span>{annualStats.paid}/{annualStats.total || 1}</span>
+                                <Progress value={(annualStats.paid / (annualStats.total || 1)) * 100} className="w-16 h-2" />
                              </div>
                          </TableCell>
                         </TableRow>
@@ -347,6 +385,7 @@ export default function InsuranceClient({
                 </TableBody>
                 </Table>
             </div>
+            )}
           </CardContent>
       </Card>
     </div>

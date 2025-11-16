@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import type { User } from 'firebase/auth';
-import { useAuth } from '@/firebase/provider';
+import { useAuth, setDocumentNonBlocking } from '@/firebase/provider';
+import { doc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { GROUP_ID } from '@/lib/data';
 
 export interface UserHookResult {
   user: User | null;
@@ -12,12 +15,12 @@ export interface UserHookResult {
 
 export const useUser = (): UserHookResult => {
   const auth = useAuth();
+  const firestore = useFirestore();
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [isUserLoading, setIsUserLoading] = useState(true);
   const [userError, setUserError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // If there's no auth instance, we can't do anything.
     if (!auth) {
       setIsUserLoading(false);
       return;
@@ -28,6 +31,17 @@ export const useUser = (): UserHookResult => {
         setUser(firebaseUser);
         setIsUserLoading(false);
         setUserError(null);
+
+        if (firebaseUser && firestore) {
+            // Create user profile if it doesn't exist
+            const userRef = doc(firestore, 'groups', GROUP_ID, 'users', firebaseUser.uid);
+            setDocumentNonBlocking(userRef, {
+                id: firebaseUser.uid,
+                email: firebaseUser.email,
+                name: firebaseUser.displayName,
+                groupId: GROUP_ID,
+            }, { merge: true });
+        }
       },
       (error) => {
         console.error('useUser: onAuthStateChanged error:', error);
@@ -37,9 +51,8 @@ export const useUser = (): UserHookResult => {
       }
     );
 
-    // Cleanup subscription on unmount
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth, firestore]);
 
   return { user, isUserLoading, userError };
 };

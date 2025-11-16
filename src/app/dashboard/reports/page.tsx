@@ -1,24 +1,7 @@
 import ReportsClient from "@/components/app/reports-client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getInsurancePayments, getMembers, getTransactions, insurancePolicies } from "@/lib/data";
+import { insurancePolicies } from "@/lib/data";
 import { Suspense } from "react";
-
-async function ReportsData() {
-  const [members, transactions, insurancePayments] = await Promise.all([
-    getMembers(),
-    getTransactions(),
-    getInsurancePayments(),
-  ]);
-
-  return (
-    <ReportsClient
-      members={members}
-      transactions={transactions}
-      insurancePayments={insurancePayments}
-      policies={insurancePolicies}
-    />
-  );
-}
 
 export default function ReportsPage() {
   return (
@@ -29,7 +12,9 @@ export default function ReportsPage() {
             <Skeleton className="h-[200px]" />
         </div>
     }>
-      <ReportsData />
+      <ReportsClient
+        policies={insurancePolicies}
+      />
     </Suspense>
   );
 }

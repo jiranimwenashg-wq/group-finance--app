@@ -11,6 +11,9 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import Link from 'next/link';
 import { Input } from '../ui/input';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { GROUP_ID } from '@/lib/data';
 
 interface MemberReportCardProps {
   member: Member;
@@ -47,7 +50,7 @@ function MemberReportCard({ member, transactions, insurancePayments, policies }:
       const input = {
         memberName: member.name,
         transactions: memberTransactions.map(t => ({
-            date: t.date.toISOString().split('T')[0],
+            date: new Date(t.date).toISOString().split('T')[0],
             description: t.description,
             amount: t.amount,
             type: t.type,
@@ -117,20 +120,55 @@ function MemberReportCard({ member, transactions, insurancePayments, policies }:
 
 
 interface ReportsClientProps {
-  members: Member[];
-  transactions: Transaction[];
-  insurancePayments: InsurancePayment[];
   policies: InsurancePolicy[];
 }
 
-export default function ReportsClient({ members, transactions, insurancePayments, policies }: ReportsClientProps) {
+export default function ReportsClient({ policies }: ReportsClientProps) {
   const [filter, setFilter] = useState('');
+  const firestore = useFirestore();
+
+  const membersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'groups', GROUP_ID, 'members');
+  }, [firestore]);
+
+  const transactionsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'groups', GROUP_ID, 'transactions');
+  }, [firestore]);
+
+  const insurancePaymentsQuery = useMemoFirebase(() => {
+      if(!firestore) return null;
+      return collection(firestore, 'groups', GROUP_ID, 'insurancePayments');
+  }, [firestore]);
   
+  const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersQuery);
+  const { data: transactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery);
+  const { data: insurancePayments, isLoading: isLoadingInsurance } = useCollection<InsurancePayment>(insurancePaymentsQuery);
+
+
   const activeMembers = useMemo(() => {
+    if (!members) return [];
     return members
       .filter((m) => m.status === 'Active')
       .filter(m => m.name.toLowerCase().includes(filter.toLowerCase()));
   }, [members, filter]);
+
+  if (isLoadingMembers || isLoadingTransactions || isLoadingInsurance) {
+      return (
+         <div className="space-y-4">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                    <h1 className="text-3xl font-bold tracking-tight">Member Reports</h1>
+                    <p className="text-muted-foreground">Generate AI-powered financial report cards for your members.</p>
+                </div>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(3)].map((_, i) => <Card key={i}><CardHeader><CardTitle><div className="h-6 w-32 bg-muted rounded-md animate-pulse"/></CardTitle></CardHeader><CardContent className="space-y-4"><div className="h-10 w-full bg-muted rounded-md animate-pulse"/><div className="h-10 w-full bg-muted rounded-md animate-pulse"/></CardContent></Card>)}
+            </div>
+         </div>
+      )
+  }
 
   return (
     <div className="space-y-4">
@@ -151,8 +189,8 @@ export default function ReportsClient({ members, transactions, insurancePayments
           <Link key={member.id} href={`/dashboard/members#${member.name.replace(/\s+/g, '-')}`} className="no-underline">
             <MemberReportCard
               member={member}
-              transactions={transactions}
-              insurancePayments={insurancePayments}
+              transactions={transactions || []}
+              insurancePayments={insurancePayments || []}
               policies={policies}
             />
           </Link>

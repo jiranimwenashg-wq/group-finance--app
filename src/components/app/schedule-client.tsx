@@ -32,8 +32,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -43,33 +41,68 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
+import { Input } from "../ui/input";
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
+import { GROUP_ID } from "@/lib/data";
+import { Skeleton } from "../ui/skeleton";
 
 
 type ScheduleStatus = "Pending" | "Paid" | "Skipped";
 
 type ScheduleItem = {
+  id: string;
   payoutDate: Date;
-  member: Member;
+  memberId: string;
+  memberName: string;
   status: ScheduleStatus;
   payoutAmount: number;
+  groupId: string;
 };
 
-type ScheduleClientProps = {
-  members: Member[];
-};
-
-const CONTRIBUTION_AMOUNT = 5000; // Assuming a fixed contribution amount
+const CONTRIBUTION_AMOUNT = 5000;
 
 const editPayoutSchema = z.object({
     payoutDate: z.date({ required_error: 'A date is required.' }),
     payoutAmount: z.coerce.number().min(1, 'Payout amount must be greater than 0.'),
 });
 
-export default function ScheduleClient({ members }: ScheduleClientProps) {
-  const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+function TableSkeleton() {
+    return (
+        <div className="rounded-lg border shadow-sm">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead><Skeleton className="h-5 w-24" /></TableHead>
+                        <TableHead><Skeleton className="h-5 w-32" /></TableHead>
+                        <TableHead><Skeleton className="h-5 w-32" /></TableHead>
+                        <TableHead><Skeleton className="h-5 w-28" /></TableHead>
+                        <TableHead><Skeleton className="h-5 w-20" /></TableHead>
+                        <TableHead className="text-right"><Skeleton className="h-5 w-10 ml-auto" /></TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {[...Array(5)].map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                            <TableCell><div className="flex justify-end"><Skeleton className="h-8 w-8" /></div></TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    )
+}
+
+export default function ScheduleClient() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ScheduleItem | null>(null);
+  const firestore = useFirestore();
 
   const { toast } = useToast();
 
@@ -77,54 +110,81 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
     resolver: zodResolver(editPayoutSchema),
   });
 
+  const membersQuery = useMemoFirebase(() => {
+      if(!firestore) return null;
+      return collection(firestore, 'groups', GROUP_ID, 'members');
+  }, [firestore]);
+  
+  const scheduleQuery = useMemoFirebase(() => {
+    if(!firestore) return null;
+    return collection(firestore, 'groups', GROUP_ID, 'savingsSchedules');
+  }, [firestore]);
+
+  const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersQuery);
+  const { data: schedule, isLoading: isLoadingSchedule } = useCollection<ScheduleItem>(scheduleQuery);
+
+
   const activeMembers = useMemo(
-    () => members.filter((m) => m.status === "Active"),
+    () => members?.filter((m) => m.status === "Active") || [],
     [members]
   );
+  
+  const sortedSchedule = useMemo(
+      () => schedule?.sort((a,b) => new Date(a.payoutDate).getTime() - new Date(b.payoutDate).getTime()) || [],
+      [schedule]
+  )
 
   const generateSchedule = () => {
+    if (!firestore || activeMembers.length === 0) return;
+    
     const shuffledMembers = [...activeMembers].sort(() => Math.random() - 0.5);
     const currentMonth = new Date().getMonth();
     const payoutAmount = activeMembers.length * CONTRIBUTION_AMOUNT;
+    const scheduleRef = collection(firestore, 'groups', GROUP_ID, 'savingsSchedules');
 
-    const newSchedule = shuffledMembers.map((member, index) => {
+    // First, delete old schedule entries if any
+    schedule?.forEach(item => {
+        const docRef = doc(scheduleRef, item.id);
+        setDocumentNonBlocking(docRef, {}, { merge: true }); // Using set with merge to clear
+    });
+
+    // Create new schedule
+    shuffledMembers.forEach((member, index) => {
       const payoutDate = new Date();
       payoutDate.setDate(1);
       payoutDate.setMonth(currentMonth + index);
       
-      return {
+      const newItem: Omit<ScheduleItem, 'id'> = {
         payoutDate,
-        member: member,
-        status: "Pending" as ScheduleStatus,
+        memberId: member.id,
+        memberName: member.name,
+        status: "Pending",
         payoutAmount,
+        groupId: GROUP_ID,
       };
+      setDocumentNonBlocking(doc(scheduleRef), newItem, { merge: false });
     });
-    setSchedule(newSchedule);
+
+    toast({ title: "Schedule Regenerated", description: "A new savings schedule has been created."})
   };
 
-  useEffect(() => {
-    generateSchedule();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(activeMembers)]);
 
   useEffect(() => {
     if (selectedItem) {
         form.reset({
-            payoutDate: selectedItem.payoutDate,
+            payoutDate: new Date(selectedItem.payoutDate),
             payoutAmount: selectedItem.payoutAmount,
         })
     }
   }, [selectedItem, form])
 
   const handleStatusChange = (
-    payoutDate: Date,
+    item: ScheduleItem,
     newStatus: ScheduleStatus
   ) => {
-    setSchedule((prevSchedule) =>
-      prevSchedule.map((item) =>
-        item.payoutDate.getTime() === payoutDate.getTime() ? { ...item, status: newStatus } : item
-      )
-    );
+    if (!firestore) return;
+    const docRef = doc(firestore, 'groups', GROUP_ID, 'savingsSchedules', item.id);
+    setDocumentNonBlocking(docRef, { status: newStatus }, { merge: true });
   };
 
   const handleEditClick = (item: ScheduleItem) => {
@@ -138,21 +198,22 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
   };
 
   const confirmDelete = () => {
-    if (!selectedItem) return;
-    setSchedule(prev => prev.filter(item => item.payoutDate.getTime() !== selectedItem.payoutDate.getTime()));
-    toast({ title: "Payout Deleted", description: `The payout for ${selectedItem.member.name} has been removed.` });
+    if (!selectedItem || !firestore) return;
+    const docRef = doc(firestore, 'groups', GROUP_ID, 'savingsSchedules', selectedItem.id);
+    setDocumentNonBlocking(docRef, {}, { merge: true }); // Empty set to delete
+    toast({ title: "Payout Deleted", description: `The payout for ${selectedItem.memberName} has been removed.` });
     setIsDeleteDialogOpen(false);
     setSelectedItem(null);
   };
 
   const handleSave = (values: z.infer<typeof editPayoutSchema>) => {
-    if (!selectedItem) return;
+    if (!selectedItem || !firestore) return;
+    const docRef = doc(firestore, 'groups', GROUP_ID, 'savingsSchedules', selectedItem.id);
 
-    setSchedule(prev => prev.map(item => 
-        item.member.id === selectedItem.member.id
-        ? { ...item, payoutDate: values.payoutDate, payoutAmount: values.payoutAmount }
-        : item
-    ).sort((a,b) => a.payoutDate.getTime() - b.payoutDate.getTime()));
+    setDocumentNonBlocking(docRef, {
+        payoutDate: values.payoutDate,
+        payoutAmount: values.payoutAmount
+    }, { merge: true });
 
     toast({ title: "Payout Updated", description: "The payout details have been saved." });
     setIsEditDialogOpen(false);
@@ -176,6 +237,8 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
       style: "currency",
       currency: "KES",
     }).format(amount);
+    
+  const isLoading = isLoadingMembers || isLoadingSchedule;
 
   return (
     <div className="space-y-4">
@@ -184,7 +247,7 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
             <h1 className="text-3xl font-bold tracking-tight">Chama Schedule</h1>
             <p className="text-muted-foreground">Manage your group's rotating savings schedule.</p>
         </div>
-        <Button onClick={generateSchedule} variant="outline" className="shrink-0">
+        <Button onClick={generateSchedule} variant="outline" className="shrink-0" disabled={isLoading}>
           <Shuffle className="mr-2 h-4 w-4" /> Regenerate Schedule
         </Button>
       </div>
@@ -194,7 +257,7 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
           <CardDescription>Manage your group's rotating savings and credit schedule. You can edit, delete, and update the status of each payout.</CardDescription>
         </CardHeader>
         <CardContent>
-          {schedule.length > 0 ? (
+          {isLoading ? <TableSkeleton /> : sortedSchedule.length > 0 ? (
             <div className="rounded-lg border">
               <Table>
                 <TableHeader>
@@ -208,11 +271,11 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {schedule.map((item) => (
-                    <TableRow key={item.member.id}>
-                      <TableCell className="font-medium">{format(item.payoutDate, "MMMM yyyy")}</TableCell>
-                      <TableCell>{format(item.payoutDate, "do MMMM yyyy")}</TableCell>
-                      <TableCell>{item.member.name}</TableCell>
+                  {sortedSchedule.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{format(new Date(item.payoutDate), "MMMM yyyy")}</TableCell>
+                      <TableCell>{format(new Date(item.payoutDate), "do MMMM yyyy")}</TableCell>
+                      <TableCell>{item.memberName}</TableCell>
                        <TableCell>{formatCurrency(item.payoutAmount)}</TableCell>
                       <TableCell>
                         <Badge variant={getBadgeVariant(item.status)}>
@@ -228,17 +291,17 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() => handleStatusChange(item.payoutDate, "Paid")}
+                              onClick={() => handleStatusChange(item, "Paid")}
                             >
                               Mark as Paid
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleStatusChange(item.payoutDate, "Pending")}
+                              onClick={() => handleStatusChange(item, "Pending")}
                             >
                               Mark as Pending
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleStatusChange(item.payoutDate, "Skipped")}
+                              onClick={() => handleStatusChange(item, "Skipped")}
                             >
                               Mark as Skipped
                             </DropdownMenuItem>
@@ -262,7 +325,7 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
           ) : (
             <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 p-12 text-center">
               <p className="text-muted-foreground">
-                No active members to generate a schedule.
+                {activeMembers.length > 0 ? "No schedule generated yet. Click 'Regenerate Schedule' to start." : "No active members to generate a schedule."}
               </p>
             </div>
           )}
@@ -275,7 +338,7 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
               <DialogHeader>
                   <DialogTitle>Edit Payout</DialogTitle>
                    <DialogDescription>
-                    Update the payout details for {selectedItem?.member.name}.
+                    Update the payout details for {selectedItem?.memberName}.
                     </DialogDescription>
               </DialogHeader>
              <Form {...form}>
@@ -346,7 +409,7 @@ export default function ScheduleClient({ members }: ScheduleClientProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the payout for <span className="font-semibold">{selectedItem?.member.name}</span> on <span className="font-semibold">{selectedItem ? format(selectedItem.payoutDate, "do MMMM yyyy") : ''}</span>.
+              This action cannot be undone. This will permanently delete the payout for <span className="font-semibold">{selectedItem?.memberName}</span> on <span className="font-semibold">{selectedItem ? format(new Date(selectedItem.payoutDate), "do MMMM yyyy") : ''}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

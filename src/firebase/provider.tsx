@@ -9,8 +9,9 @@ import React, {
 } from 'react';
 import type { FirebaseApp } from 'firebase/app';
 import type { Firestore } from 'firebase/firestore';
-import type { Auth, User } from 'firebase/auth';
+import type { Auth } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { setDocumentNonBlocking } from './non-blocking-updates';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -23,15 +24,6 @@ export interface FirebaseContextState {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
-}
-
-export interface FirebaseServicesAndUser {
-  firebaseApp: FirebaseApp;
-  firestore: Firestore;
-  auth: Auth;
-  user: User | null;
-  isUserLoading: boolean;
-  userError: Error | null;
 }
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(
@@ -68,7 +60,7 @@ function useFirebaseContext() {
   return context;
 }
 
-export const useFirebase = (): Omit<FirebaseContextState, 'user' | 'isUserLoading' | 'userError'> => {
+export const useFirebase = (): FirebaseContextState => {
   const context = useFirebaseContext();
   if (!context.firebaseApp || !context.firestore || !context.auth) {
     throw new Error(
@@ -105,7 +97,11 @@ export function useMemoFirebase<T>(
   const memoized = useMemo(factory, deps);
 
   if (typeof memoized !== 'object' || memoized === null) return memoized;
-  (memoized as MemoFirebase<T>).__memo = true;
+  if(memoized) {
+    (memoized as MemoFirebase<T>).__memo = true;
+  }
 
   return memoized;
 }
+
+export { setDocumentNonBlocking };
