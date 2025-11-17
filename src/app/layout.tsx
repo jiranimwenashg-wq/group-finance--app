@@ -16,9 +16,10 @@ export const metadata: Metadata = {
   description: "The effortless way to manage your community group's finances.",
   manifest: "/manifest.json",
   icons: {
-    icon: '/icons/icon-192x192.png',
+    icon: '/favicon.ico',
+    apple: '/apple-icon.png',
   },
-  themeColor: '#4F46E5',
+  themeColor: '#09090B',
 };
 
 export default function RootLayout({
@@ -32,7 +33,7 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <ThemeProvider
             attribute="class"
-            defaultTheme="system"
+            defaultTheme="dark"
             enableSystem
             disableTransitionOnChange
           >
