@@ -15,6 +15,10 @@ export const metadata: Metadata = {
   title: 'FinanceFlow AI',
   description: "The effortless way to manage your community group's finances.",
   manifest: "/manifest.json",
+  icons: {
+    icon: '/icons/icon-192x192.png',
+  },
+  themeColor: '#4F46E5',
 };
 
 export default function RootLayout({
