@@ -70,13 +70,13 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="container flex h-screen w-screen flex-col items-center justify-center">
+    <div className="container flex h-screen w-screen flex-col items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500">
         <Link
             href="/"
             className="absolute left-4 top-4 flex items-center md:left-8 md:top-8"
         >
-            <Icons.logo className="mr-2 size-6" />
-            <span className="font-bold">FinanceFlow AI</span>
+            <Icons.logo className="mr-2 size-6 text-white" />
+            <span className="font-bold text-white">FinanceFlow AI</span>
         </Link>
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
             <Card>
@@ -96,7 +96,7 @@ export default function SignupPage() {
                     <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
+                    <span className="bg-card px-2 text-muted-foreground">
                     Or continue with
                     </span>
                 </div>
