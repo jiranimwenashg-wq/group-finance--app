@@ -139,7 +139,7 @@ export default function LandingPage() {
               {features.map((feature) => (
                 <Card
                   key={feature.title}
-                  className="flex flex-col border-white/20 bg-card/60 backdrop-blur-sm"
+                  className="flex flex-col border-border bg-card/30 backdrop-blur-sm"
                 >
                   <CardHeader className="items-center">{feature.icon}</CardHeader>
                   <CardContent className="flex flex-1 flex-col items-center text-center">
