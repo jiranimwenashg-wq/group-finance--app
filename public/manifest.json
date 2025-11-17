@@ -1,33 +1,19 @@
 {
-  "name": "FinanceFlow AI",
-  "short_name": "FinanceFlow",
-  "description": "Your AI-powered finance assistant app",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4F46E5",
-  "orientation": "portrait",
-  "scope": "/",
+  "name": "FinanceFlowAI",
+  "short_name": "FinanceFlowAI",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-256x256.png",
-      "sizes": "256x256",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-384x384.png",
-      "sizes": "384x384",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-512x512.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "display": "standalone"
 }

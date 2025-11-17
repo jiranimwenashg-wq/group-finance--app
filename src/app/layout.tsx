@@ -19,7 +19,11 @@ export const metadata: Metadata = {
     icon: '/favicon.ico',
     apple: '/apple-icon.png',
   },
-  themeColor: '#09090B',
+  themeColor: '#ffffff',
+  appleWebApp: {
+    title: 'FinanceFlowAI',
+    statusBarStyle: 'default',
+  }
 };
 
 export default function RootLayout({
