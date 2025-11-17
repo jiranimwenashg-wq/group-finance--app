@@ -23,22 +23,24 @@ import {
   SidebarGroupLabel,
 } from "@/components/ui/sidebar";
 
+const navIconClasses = "text-primary";
+
 const financialLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard /> },
-  { href: "/dashboard/transactions", label: "Transactions", icon: <Banknote /> },
-  { href: "/dashboard/reports", label: "Reports", icon: <FileCheck /> },
+  { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className={navIconClasses} /> },
+  { href: "/dashboard/transactions", label: "Transactions", icon: <Banknote className={navIconClasses} /> },
+  { href: "/dashboard/reports", label: "Reports", icon: <FileCheck className={navIconClasses} /> },
 ];
 
 const membershipLinks = [
-  { href: "/dashboard/members", label: "Members", icon: <Users /> },
-  { href: "/dashboard/insurance", label: "Insurance", icon: <HeartHandshake /> },
-  { href: "/dashboard/schedule", label: "Schedule", icon: <CalendarClock /> },
+  { href: "/dashboard/members", label: "Members", icon: <Users className={navIconClasses} /> },
+  { href: "/dashboard/insurance", label: "Insurance", icon: <HeartHandshake className={navIconClasses} /> },
+  { href: "/dashboard/schedule", label: "Schedule", icon: <CalendarClock className={navIconClasses} /> },
 ];
 
 const toolsLinks = [
-  { href: "/dashboard/calendar", label: "Calendar", icon: <Calendar /> },
-  { href: "/dashboard/constitution", label: "Constitution AI", icon: <FileText /> },
-  { href: "/dashboard/help", label: "Help", icon: <HelpCircle /> },
+  { href: "/dashboard/calendar", label: "Calendar", icon: <Calendar className={navIconClasses} /> },
+  { href: "/dashboard/constitution", label: "Constitution AI", icon: <FileText className={navIconClasses} /> },
+  { href: "/dashboard/help", label: "Help", icon: <HelpCircle className={navIconClasses} /> },
 ];
 
 export function MainNav() {
@@ -84,7 +86,7 @@ export function MainNav() {
             tooltip={{ children: "Settings" }}
           >
             <Link href="/dashboard/settings">
-              <Settings />
+              <Settings className={navIconClasses} />
               <span>Settings</span>
             </Link>
           </SidebarMenuButton>
