@@ -2,22 +2,6 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
@@ -28,79 +12,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
 import { Separator } from '@/components/ui/separator';
 
-function ForgotPasswordDialog() {
-  const auth = useAuth();
-  const { toast } = useToast();
-  const [open, setOpen] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
-
-  const handlePasswordReset = () => {
-    if (!resetEmail) return;
-    initiatePasswordReset(
-      auth,
-      resetEmail,
-      (successMessage) => {
-        toast({
-          title: 'Email Sent',
-          description: successMessage,
-        });
-        setOpen(false); // Close dialog on success
-        setResetEmail('');
-      },
-      (error) => {
-        toast({
-          variant: 'destructive',
-          title: 'Reset Failed',
-          description: error,
-        });
-      }
-    );
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="link" size="sm" className="w-full justify-start p-0">
-          Forgot Password?
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Reset Password</DialogTitle>
-          <DialogDescription>
-            Enter your email address and we will send you a link to reset your
-            password.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="reset-email" className="text-right">
-              Email
-            </Label>
-            <Input
-              id="reset-email"
-              type="email"
-              value={resetEmail}
-              onChange={(e) => setResetEmail(e.target.value)}
-              className="col-span-3"
-              placeholder="m@example.com"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button onClick={handlePasswordReset}>Send Reset Link</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export default function LoginPage() {
   useRedirectIfAuthenticated();
   const auth = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,82 +41,114 @@ export default function LoginPage() {
         });
     });
   };
+  
+  const handlePasswordReset = () => {
+    if (!resetEmail) return;
+    initiatePasswordReset(
+      auth,
+      resetEmail,
+      (successMessage) => {
+        toast({
+          title: 'Email Sent',
+          description: successMessage,
+        });
+        setResetEmail('');
+      },
+      (error) => {
+        toast({
+          variant: 'destructive',
+          title: 'Reset Failed',
+          description: error,
+        });
+      }
+    );
+  };
 
   return (
-    <div className="container flex h-screen w-screen flex-col items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500">
-       <Link
+    <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500 px-4">
+      <Link
         href="/"
-        className="absolute left-4 top-4 flex items-center md:left-8 md:top-8"
+        className="absolute left-4 top-4 flex items-center md:left-8 md:top-8 text-white"
       >
-        <Icons.logo className="mr-2 size-6 text-white" />
-        <span className="font-bold text-white">FinanceFlow AI</span>
+        <Icons.logo className="mr-2 size-6" />
+        <span className="font-bold">FinanceFlow AI</span>
       </Link>
-      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-        <Card>
-            <CardHeader className="space-y-1 text-center">
-                <CardTitle className="text-xl">Welcome Back</CardTitle>
-                <CardDescription>
-                Choose your preferred sign-in method
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-                <Button variant="outline" onClick={handleGoogleSignIn}>
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center text-white">
+          <h1 className="text-4xl font-bold">Welcome Back</h1>
+          <p className="mt-2 text-blue-200">Sign in to access your dashboard.</p>
+        </div>
+        
+        <div className="space-y-4 rounded-xl bg-white/10 p-8 shadow-2xl backdrop-blur-lg">
+            <Button variant="outline" onClick={handleGoogleSignIn} className="w-full bg-white/20 text-white border-white/30 hover:bg-white/30">
                 <Icons.google className="mr-2 size-4" />
                 Sign in with Google
-                </Button>
-                <div className="relative">
+            </Button>
+            
+            <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+                    <span className="w-full border-t border-white/30" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
+                    <span className="bg-transparent px-2 text-blue-200">
+                        Or continue with
                     </span>
                 </div>
-                </div>
-                <form onSubmit={handleLogin} className="space-y-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    />
-                </div>
-                <div className="grid gap-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
-                      <ForgotPasswordDialog />
-                    </div>
-                    <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    />
-                </div>
-                <Button className="w-full" type="submit">
-                    Login with Email
-                </Button>
-                </form>
-            </CardContent>
-            <Separator className="my-4" />
-             <div className="p-6 pt-0 text-center">
-              <p className="text-sm text-muted-foreground">
-                Don&apos;t have an account?{' '}
-                <Link
-                  href="/signup"
-                  className="font-semibold text-primary underline-offset-4 hover:underline"
-                >
-                  Sign up
-                </Link>
-              </p>
             </div>
-        </Card>
+
+            <form onSubmit={handleLogin} className="space-y-4">
+            <div className="grid gap-2">
+                <Label htmlFor="email" className="text-white">Email</Label>
+                <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="bg-white/10 text-white placeholder:text-blue-200 border-white/30 focus:border-primary"
+                />
+            </div>
+            <div className="grid gap-2">
+                <Label htmlFor="password" className="text-white">Password</Label>
+                <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="bg-white/10 text-white placeholder:text-blue-200 border-white/30 focus:border-primary"
+                />
+            </div>
+            <Button className="w-full" type="submit">
+                Login with Email
+            </Button>
+            </form>
+        </div>
+
+        <div className="text-center">
+             <Link
+                href="/signup"
+                className="text-sm text-blue-200 hover:text-white hover:underline"
+                >
+                Don&apos;t have an account? Sign up
+            </Link>
+             <Separator className="my-4 bg-white/20" />
+             <Link
+                href="/login#"
+                onClick={(e) => {
+                    e.preventDefault();
+                    const emailToReset = prompt("Please enter your email address to reset your password:");
+                    if (emailToReset) {
+                        setResetEmail(emailToReset);
+                        handlePasswordReset();
+                    }
+                }}
+                className="text-sm text-blue-200 hover:text-white hover:underline"
+                >
+                Forgot your password?
+            </Link>
+        </div>
       </div>
     </div>
   );

@@ -2,13 +2,6 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
@@ -17,7 +10,6 @@ import { initiateEmailSignUp, initiateGoogleSignIn } from '@/firebase/non-blocki
 import { useRedirectIfAuthenticated } from '@/hooks/use-redirect-if-authenticated';
 import { useToast } from '@/hooks/use-toast';
 import { Icons } from '@/components/icons';
-import { Separator } from '@/components/ui/separator';
 
 export default function SignupPage() {
   useRedirectIfAuthenticated();
@@ -70,40 +62,40 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="container flex h-screen w-screen flex-col items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500">
-        <Link
-            href="/"
-            className="absolute left-4 top-4 flex items-center md:left-8 md:top-8"
-        >
-            <Icons.logo className="mr-2 size-6 text-white" />
-            <span className="font-bold text-white">FinanceFlow AI</span>
-        </Link>
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-            <Card>
-            <CardHeader className="space-y-1 text-center">
-                <CardTitle className="text-xl">Create an Account</CardTitle>
-                <CardDescription>
-                Choose your preferred sign-up method
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-                <Button variant="outline" onClick={handleGoogleSignIn}>
+    <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500 px-4">
+      <Link
+        href="/"
+        className="absolute left-4 top-4 flex items-center md:left-8 md:top-8 text-white"
+      >
+        <Icons.logo className="mr-2 size-6" />
+        <span className="font-bold">FinanceFlow AI</span>
+      </Link>
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center text-white">
+          <h1 className="text-4xl font-bold">Create Your Account</h1>
+          <p className="mt-2 text-blue-200">Join FinanceFlow AI and simplify your finances.</p>
+        </div>
+        
+        <div className="space-y-4 rounded-xl bg-white/10 p-8 shadow-2xl backdrop-blur-lg">
+            <Button variant="outline" onClick={handleGoogleSignIn} className="w-full bg-white/20 text-white border-white/30 hover:bg-white/30">
                 <Icons.google className="mr-2 size-4" />
                 Sign up with Google
-                </Button>
-                <div className="relative">
+            </Button>
+            
+            <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+                    <span className="w-full border-t border-white/30" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
+                    <span className="bg-transparent px-2 text-blue-200">
+                        Or continue with
                     </span>
                 </div>
-                </div>
-                <form onSubmit={handleSignUp} className="space-y-4">
+            </div>
+
+            <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="grid gap-2">
-                    <Label htmlFor="name">Name</Label>
+                    <Label htmlFor="name" className="text-white">Name</Label>
                     <Input
                     id="name"
                     type="text"
@@ -111,10 +103,11 @@ export default function SignupPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
+                    className="bg-white/10 text-white placeholder:text-blue-200 border-white/30 focus:border-primary"
                     />
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" className="text-white">Email</Label>
                     <Input
                     id="email"
                     type="email"
@@ -122,47 +115,46 @@ export default function SignupPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    className="bg-white/10 text-white placeholder:text-blue-200 border-white/30 focus:border-primary"
                     />
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password" className="text-white">Password</Label>
                     <Input
                     id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    className="bg-white/10 text-white placeholder:text-blue-200 border-white/30 focus:border-primary"
                     />
                 </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="confirm-password">Confirm Password</Label>
+                <div className="grid gap-2">
+                    <Label htmlFor="confirm-password" className="text-white">Confirm Password</Label>
                     <Input
                     id="confirm-password"
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    className="bg-white/10 text-white placeholder:text-blue-200 border-white/30 focus:border-primary"
                     />
                 </div>
                 <Button className="w-full" type="submit">
                     Create Account
                 </Button>
-                </form>
-            </CardContent>
-            <Separator className="my-4" />
-            <div className="p-6 pt-0 text-center">
-              <p className="text-sm text-muted-foreground">
-                Already have an account?{' '}
-                <Link
-                  href="/login"
-                  className="font-semibold text-primary underline-offset-4 hover:underline"
-                >
-                  Login
-                </Link>
-              </p>
-            </div>
-            </Card>
+            </form>
         </div>
+
+        <div className="text-center">
+             <Link
+                href="/login"
+                className="text-sm text-blue-200 hover:text-white hover:underline"
+                >
+                Already have an account? Login
+            </Link>
+        </div>
+      </div>
     </div>
   );
 }

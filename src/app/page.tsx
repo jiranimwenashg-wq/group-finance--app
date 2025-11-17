@@ -1,4 +1,6 @@
 import React from "react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function Home() {
   const cards = [
@@ -20,18 +22,27 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-fuchsia-500 via-blue-500 to-green-300 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500 flex flex-col items-center justify-center p-4">
       {/* Hero Section */}
-      <h1 className="text-5xl md:text-7xl font-bold text-white drop-shadow-lg mb-6 mt-12 text-center">
-        Welcome to ModernApp
-      </h1>
-      <p className="mb-16 text-xl text-white/80 max-w-xl text-center">
-        Experience intuitive design, frosted glass effects, and interactive cards.
-        Built with Next.js, Tailwind, and React.
-      </p>
+      <div className="flex flex-col items-center text-center">
+        <h1 className="text-5xl md:text-7xl font-bold text-white drop-shadow-lg mb-6 mt-12">
+          Welcome to FinanceFlow AI
+        </h1>
+        <p className="mb-8 text-xl text-white/80 max-w-2xl">
+          Effortlessly manage your community group's finances with AI-powered tools. Get started now.
+        </p>
+        <div className="flex gap-4">
+          <Button asChild size="lg">
+            <Link href="/signup">Get Started Free</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="bg-transparent text-white border-white hover:bg-white hover:text-blue-700">
+            <Link href="/login">Sign In</Link>
+          </Button>
+        </div>
+      </div>
 
       {/* Card Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-12 w-full max-w-5xl">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl mt-24">
         {cards.map((card, idx) => (
           <div
             key={idx}
@@ -40,10 +51,10 @@ export default function Home() {
               flex flex-col items-center"
           >
             {/* Gradient Overlay */}
-            <div className="absolute inset-0 h-full w-full bg-gradient-to-tr from-pink-500/20 via-violet-500/20 to-cyan-400/20 opacity-0 group-hover:opacity-100 rounded-2xl transition duration-700 pointer-events-none" />
+            <div className="absolute inset-0 h-full w-full bg-gradient-to-tr from-primary/20 via-blue-500/20 to-green-300/20 opacity-0 group-hover:opacity-100 rounded-2xl transition duration-700 pointer-events-none" />
             {/* Card Content */}
             <div className="relative z-10 flex flex-col items-center">
-              <span className="text-5xl mb-4">{card.icon}</span>
+              <span className="text-5xl mb-4 text-primary">{card.icon}</span>
               <h3 className="text-2xl font-semibold text-white text-center">{card.title}</h3>
               <p className="mt-3 text-white/80 text-center">{card.description}</p>
             </div>
