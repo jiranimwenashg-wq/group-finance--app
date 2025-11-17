@@ -1,11 +1,13 @@
 {
   "name": "FinanceFlow AI",
   "short_name": "FinanceFlow",
-  "description": "The effortless way to manage your community group's finances.",
-  "start_url": "/",
-  "display": "standalone",
+  "theme_color": "#ffffff",
   "background_color": "#ffffff",
-  "theme_color": "#F59E0B",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "orientation": "portrait-primary",
+  "description": "Your AI-powered finance management PWA.",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
