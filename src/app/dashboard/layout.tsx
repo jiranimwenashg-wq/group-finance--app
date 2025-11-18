@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import useIdleTimeout from '@/hooks/use-idle-timeout';
 
 export default function DashboardLayout({
   children,
@@ -23,6 +24,9 @@ export default function DashboardLayout({
 }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+
+  // Add the idle timeout hook. It will automatically handle logout.
+  useIdleTimeout(30);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
