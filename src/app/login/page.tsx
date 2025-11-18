@@ -42,17 +42,16 @@ export default function LoginPage() {
     });
   };
   
-  const handlePasswordReset = () => {
-    if (!resetEmail) return;
+  const handlePasswordReset = (emailToReset: string) => {
+    if (!emailToReset) return;
     initiatePasswordReset(
       auth,
-      resetEmail,
+      emailToReset,
       (successMessage) => {
         toast({
           title: 'Email Sent',
           description: successMessage,
         });
-        setResetEmail('');
       },
       (error) => {
         toast({
@@ -140,8 +139,7 @@ export default function LoginPage() {
                     e.preventDefault();
                     const emailToReset = prompt("Please enter your email address to reset your password:");
                     if (emailToReset) {
-                        setResetEmail(emailToReset);
-                        handlePasswordReset();
+                        handlePasswordReset(emailToReset);
                     }
                 }}
                 className="text-sm text-blue-200 hover:text-white hover:underline"
