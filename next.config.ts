@@ -1,13 +1,5 @@
 
 import type { NextConfig } from 'next';
-import withPWA from 'next-pwa';
-
-const pwaConfig = withPWA({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: true,
-});
 
 const nextConfig: NextConfig = {
   async headers() {
@@ -65,7 +57,7 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
-    serverComponentsExternalPackages: [
+    serverExternalPackages: [
       '@genkit-ai/google-genai',
       'firebase-admin',
       'long',
@@ -73,4 +65,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default pwaConfig(nextConfig);
+export default nextConfig;
