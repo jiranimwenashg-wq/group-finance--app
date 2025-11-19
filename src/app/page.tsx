@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Banknote, Bot, FileText, HeartHandshake, Users, Wallet } from "lucide-react";
 
-// Cache-busting comment: 2024-07-26T12:00:00Z
+// Cache-busting comment: 2024-07-27T10:00:00Z
 export default function Home() {
   const features = [
     {
@@ -39,45 +39,50 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500 flex flex-col items-center justify-center p-4">
-      {/* Hero Section */}
-      <div className="flex flex-col items-center text-center">
-        <h1 className="text-5xl md:text-7xl font-bold text-white drop-shadow-lg mb-6 mt-12">
-          Welcome to FinanceFlow AI
-        </h1>
-        <p className="mb-8 text-xl text-white/80 max-w-2xl">
-          Effortlessly manage your community group's finances with AI-powered tools. Get started now.
-        </p>
-        <div className="flex gap-4">
-          <Button asChild size="lg">
-            <Link href="/signup">Get Started Free</Link>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-blue-700">
-            <Link href="/login">Sign In</Link>
-          </Button>
-        </div>
-      </div>
+    <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-blue-900 via-blue-700 to-blue-500">
+      {/* Background Shapes */}
+      <div className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-400/30 rounded-full filter blur-3xl opacity-50 animate-blob"></div>
+      <div className="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-96 h-96 bg-primary/30 rounded-full filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-green-300/20 rounded-full filter blur-3xl opacity-50 animate-blob animation-delay-4000"></div>
 
-      {/* Card Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-6xl mt-24">
-        {features.map((card, idx) => (
-          <div
-            key={idx}
-            className="group cursor-pointer relative w-full p-8 rounded-2xl bg-card/30 border border-border shadow-2xl backdrop-blur-md
-              transition-all duration-500 hover:scale-105 hover:shadow-3xl hover:bg-card/40
-              flex flex-col items-center"
-          >
-            {/* Gradient Overlay */}
-            <div className="absolute inset-0 h-full w-full bg-gradient-to-tr from-primary/20 via-blue-500/20 to-green-300/20 opacity-0 group-hover:opacity-100 rounded-2xl transition duration-700 pointer-events-none" />
-            {/* Card Content */}
-            <div className="relative z-10 flex flex-col items-center">
-              <div className="mb-4">{card.icon}</div>
-              <h3 className="text-2xl font-semibold text-white text-center">{card.title}</h3>
-              <p className="mt-3 text-white/80 text-center">{card.description}</p>
-            </div>
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4">
+        {/* Hero Section */}
+        <div className="flex flex-col items-center text-center p-8 md:p-12 mt-16 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl">
+          <h1 className="text-5xl md:text-7xl font-bold text-white drop-shadow-lg mb-6">
+            Welcome to FinanceFlow AI
+          </h1>
+          <p className="mb-8 text-xl text-white/80 max-w-2xl">
+            Effortlessly manage your community group's finances with AI-powered tools. Get started now.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button asChild size="lg">
+              <Link href="/signup">Get Started Free</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="text-white border-white/50 bg-white/10 hover:bg-white/20 hover:text-white">
+              <Link href="/login">Sign In</Link>
+            </Button>
           </div>
-        ))}
+        </div>
+
+        {/* Card Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-6xl mt-24">
+          {features.map((card, idx) => (
+            <div
+              key={idx}
+              className="group cursor-pointer w-full p-8 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg
+                transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:border-white/30
+                flex flex-col items-center text-center"
+            >
+              <div className="mb-4 transform transition-transform duration-300 group-hover:scale-110">{card.icon}</div>
+              <h3 className="text-2xl font-semibold text-white">{card.title}</h3>
+              <p className="mt-3 text-white/80">{card.description}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
+
+// Add keyframes and animation delay utility to tailwind.config.ts if not present
+// For this example, we can add a style tag to globals.css for simplicity.
