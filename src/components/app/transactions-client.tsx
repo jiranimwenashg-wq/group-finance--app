@@ -124,6 +124,12 @@ function AddTransactionDialog({
     form.reset();
     setOpen(false);
   };
+  
+  const sortedMembers = useMemo(() => {
+    return members
+      .filter((m) => m.status === 'Active')
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [members]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -235,9 +241,7 @@ function AddTransactionDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {members
-                        .filter((m) => m.status === 'Active')
-                        .map((member) => (
+                      {sortedMembers.map((member) => (
                           <SelectItem key={member.id} value={member.id}>
                             {member.name}
                           </SelectItem>
@@ -778,6 +782,11 @@ export default function TransactionsClient() {
 
     event.target.value = '';
   };
+  
+  const sortedMembers = useMemo(() => {
+    if (!members) return [];
+    return [...members].sort((a, b) => a.name.localeCompare(b.name));
+  }, [members]);
 
   const isLoading = isLoadingMembers || isLoadingTransactions;
 
@@ -1020,7 +1029,7 @@ export default function TransactionsClient() {
                     <Select onValueChange={field.onChange} value={field.value || ''}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Select a member" /></SelectTrigger></FormControl>
                       <SelectContent>
-                        {members?.filter(m => m.status === 'Active').map(member => (
+                        {sortedMembers?.filter(m => m.status === 'Active').map(member => (
                           <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
                         ))}
                       </SelectContent>

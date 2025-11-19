@@ -180,7 +180,8 @@ export default function ReportsClient({ policies }: ReportsClientProps) {
     if (!members) return [];
     return members
       .filter((m) => m.status === 'Active')
-      .filter(m => m.name.toLowerCase().includes(filter.toLowerCase()));
+      .filter(m => m.name.toLowerCase().includes(filter.toLowerCase()))
+      .sort((a,b) => a.name.localeCompare(b.name));
   }, [members, filter]);
 
   if (isLoadingMembers || isLoadingTransactions || isLoadingInsurance) {

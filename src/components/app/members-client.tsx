@@ -173,9 +173,11 @@ export default function MembersClient() {
 
   const filteredMembers = useMemo(() => {
     if (!members) return [];
-    return members.filter((member) =>
-      member.name.toLowerCase().includes(filter.toLowerCase())
-    );
+    return members
+      .filter((member) =>
+        member.name.toLowerCase().includes(filter.toLowerCase())
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [members, filter]);
 
   const handleAddMember = (

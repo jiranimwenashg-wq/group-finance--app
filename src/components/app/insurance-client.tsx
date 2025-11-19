@@ -102,7 +102,7 @@ export default function InsuranceClient({
     () => members?.filter(m => 
       m.status === 'Active' && 
       m.name.toLowerCase().includes(filter.toLowerCase())
-    ) || [],
+    ).sort((a,b) => a.name.localeCompare(b.name)) || [],
     [members, filter]
   );
   const selectedPolicy = useMemo(
