@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import Papa from 'papaparse';
 import {
   Table,
@@ -24,7 +24,7 @@ import {
   DialogTrigger,
 } from '../ui/dialog';
 import { Textarea } from '../ui/textarea';
-import { Bot, Download, PlusCircle, Upload, Copy, Share2, Loader2 } from 'lucide-react';
+import { Bot, Download, PlusCircle, Upload, Copy, Share2, Loader2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   parseMpesaSms,
@@ -63,10 +63,15 @@ import {
   useCollection,
   useMemoFirebase,
   addDocumentNonBlocking,
+  setDocumentNonBlocking,
+  deleteDocumentNonBlocking,
 } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+
 
 const transactionSchema = z.object({
   description: z.string().min(1, 'Description is required'),
@@ -88,7 +93,7 @@ function AddTransactionDialog({
   onAddTransaction,
 }: {
   members: Member[];
-  onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  onAddTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => void;
 }) {
   const [open, setOpen] = useState(false);
   const form = useForm<z.infer<typeof transactionSchema>>({
@@ -106,9 +111,8 @@ function AddTransactionDialog({
       ? members.find((m) => m.id === values.memberId)
       : undefined;
 
-    const newTransaction: Omit<Transaction, 'id'> = {
+    const newTransaction: Omit<Transaction, 'id' | 'date'> = {
       ...values,
-      date: new Date(),
       memberName: member?.name,
       groupId: GROUP_ID,
     };
@@ -272,7 +276,15 @@ function formatTransactionsForWhatsApp(transactions: Transaction[]): string {
   return `${header}\n\n${items}`;
 }
 
-function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
+function TransactionsTable({ 
+  transactions,
+  onEdit,
+  onDelete
+}: { 
+  transactions: Transaction[];
+  onEdit: (transaction: Transaction) => void;
+  onDelete: (transaction: Transaction) => void;
+}) {
   return (
     <div className="rounded-lg border shadow-sm">
       <div className="relative w-full overflow-auto">
@@ -285,6 +297,7 @@ function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
               <TableHead>Category</TableHead>
               <TableHead>Type</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-[50px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -323,6 +336,23 @@ function TransactionsTable({ transactions }: { transactions: Transaction[] }) {
                 >
                   {formatCurrency(transaction.amount)}
                 </TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onEdit(transaction)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onDelete(transaction)} className="text-destructive">
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -344,6 +374,7 @@ function TableSkeleton() {
                         <TableHead><Skeleton className="h-5 w-24" /></TableHead>
                         <TableHead><Skeleton className="h-5 w-20" /></TableHead>
                         <TableHead className="text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableHead>
+                        <TableHead className="text-right"><Skeleton className="h-5 w-10 ml-auto" /></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -355,6 +386,7 @@ function TableSkeleton() {
                             <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                            <TableCell><div className="flex justify-end"><Skeleton className="h-7 w-7" /></div></TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -414,11 +446,14 @@ export default function TransactionsClient() {
   const [smsText, setSmsText] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   const [filter, setFilter] = useState('');
-  const [parsedTransaction, setParsedTransaction] =
-    useState<ParseMpesaSmsOutput | null>(null);
+  const [parsedTransaction, setParsedTransaction] = useState<ParseMpesaSmsOutput | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   const membersPath = `groups/${GROUP_ID}/members`;
   const transactionsPath = `groups/${GROUP_ID}/transactions`;
@@ -433,20 +468,86 @@ export default function TransactionsClient() {
     return collection(firestore, transactionsPath);
   }, [firestore]);
 
-  const { data: members, isLoading: isLoadingMembers } =
-    useCollection<Member>(membersQuery, membersPath);
-  const { data: transactions, isLoading: isLoadingTransactions } =
-    useCollection<Transaction>(transactionsQuery, transactionsPath);
+  const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersQuery, membersPath);
+  const { data: transactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery, transactionsPath);
 
-  const handleAddTransaction = (transaction: Omit<Transaction, 'id'>) => {
+  const editForm = useForm<z.infer<typeof transactionSchema>>({
+    resolver: zodResolver(transactionSchema),
+  });
+
+  useEffect(() => {
+    if (selectedTransaction) {
+      editForm.reset({
+        description: selectedTransaction.description,
+        amount: selectedTransaction.amount,
+        type: selectedTransaction.type,
+        category: selectedTransaction.category,
+        memberId: selectedTransaction.memberId,
+      });
+    }
+  }, [selectedTransaction, editForm]);
+
+
+  const handleAddTransaction = (transaction: Omit<Transaction, 'id' | 'date'>) => {
     if (!firestore) return;
+    const newTransaction = {
+      ...transaction,
+      date: new Date(),
+    }
     const transactionsRef = collection(firestore, 'groups', GROUP_ID, 'transactions');
-    addDocumentNonBlocking(transactionsRef, transaction);
+    addDocumentNonBlocking(transactionsRef, newTransaction);
     toast({
       title: 'Transaction Added',
       description: `A new transaction for ${formatCurrency(transaction.amount)} has been recorded.`,
     });
   };
+
+  const handleEditSubmit = (values: z.infer<typeof transactionSchema>) => {
+    if (!firestore || !selectedTransaction) return;
+
+    const member = values.memberId ? members?.find((m) => m.id === values.memberId) : undefined;
+    const updatedTransaction = {
+      ...selectedTransaction,
+      ...values,
+      memberName: member?.name,
+    };
+    
+    const transactionRef = doc(firestore, 'groups', GROUP_ID, 'transactions', selectedTransaction.id);
+    setDocumentNonBlocking(transactionRef, updatedTransaction, { merge: true });
+    
+    toast({
+      title: 'Transaction Updated',
+      description: 'The transaction has been successfully updated.',
+    });
+    setIsEditOpen(false);
+    setSelectedTransaction(null);
+  };
+  
+  const handleDeleteConfirm = () => {
+    if (!firestore || !selectedTransaction) return;
+    
+    const transactionRef = doc(firestore, 'groups', GROUP_ID, 'transactions', selectedTransaction.id);
+    deleteDocumentNonBlocking(transactionRef);
+    
+    toast({
+      variant: 'destructive',
+      title: 'Transaction Deleted',
+      description: 'The transaction has been permanently deleted.',
+    });
+    setIsDeleteOpen(false);
+    setSelectedTransaction(null);
+  };
+
+  const openEditDialog = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsEditOpen(true);
+  };
+  
+  const openDeleteDialog = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsDeleteOpen(true);
+  };
+
 
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];
@@ -523,7 +624,12 @@ export default function TransactionsClient() {
         groupId: GROUP_ID
     };
 
-    handleAddTransaction(newTransaction);
+    const transactionsRef = collection(firestore, 'groups', GROUP_ID, 'transactions');
+    addDocumentNonBlocking(transactionsRef, newTransaction);
+    toast({
+      title: 'Transaction Added',
+      description: `A new transaction for ${formatCurrency(newTransaction.amount)} has been recorded.`,
+    });
     setParsedTransaction(null);
     setSmsText('');
   };
@@ -776,20 +882,132 @@ export default function TransactionsClient() {
                 <TabsTrigger value="last_respect">Last Respect</TabsTrigger>
                 </TabsList>
                 <TabsContent value="all" className="mt-4">
-                <TransactionsTable transactions={filteredTransactions} />
+                  <TransactionsTable transactions={filteredTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
                 </TabsContent>
                 <TabsContent value="contributions" className="mt-4">
-                <TransactionsTable transactions={contributionTransactions} />
+                  <TransactionsTable transactions={contributionTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
                 </TabsContent>
                 <TabsContent value="last_respect" className="mt-4">
-                <TransactionsTable transactions={lastRespectTransactions} />
+                  <TransactionsTable transactions={lastRespectTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
                 </TabsContent>
             </Tabs>
           )}
         </CardContent>
       </Card>
+
+       {/* Edit Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Transaction</DialogTitle>
+            <DialogDescription>
+              Update the details of this transaction.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(handleEditSubmit)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Amount</FormLabel>
+                    <FormControl><Input type="number" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="Income">Income</SelectItem>
+                        <SelectItem value="Expense">Expense</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="Contribution">Contribution</SelectItem>
+                        <SelectItem value="Late Fee">Late Fee</SelectItem>
+                        <SelectItem value="Project">Project</SelectItem>
+                        <SelectItem value="Social Fund">Social Fund</SelectItem>
+                        <SelectItem value="Operational">Operational</SelectItem>
+                        <SelectItem value="Last Respect">Last Respect</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="memberId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Member (Optional)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select a member" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {members?.filter(m => m.status === 'Active').map(member => (
+                          <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the transaction: <span className="font-semibold">{selectedTransaction?.description}</span>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
-
-    
