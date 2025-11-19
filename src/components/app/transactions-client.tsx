@@ -1,8 +1,4 @@
 
-
-
-
-
 'use client';
 
 import { useState, useMemo, useRef, useEffect } from 'react';
@@ -75,10 +71,8 @@ import { GROUP_ID } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { ScrollArea } from '../ui/scroll-area';
 import { formatCurrency } from './recent-transactions';
 
@@ -887,70 +881,68 @@ export default function TransactionsClient() {
           <AddTransactionDialog members={members || []} onAddTransaction={handleAddTransaction} />
         </div>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Transaction History</CardTitle>
-          <CardDescription>
-            Search for transactions by description, member name, or category.
-          </CardDescription>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Input
-              placeholder="Filter transactions..."
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="max-w-sm"
-            />
-             <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-[240px] justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            {date && (
-                <Button variant="ghost" onClick={() => setDate(undefined)}>
-                    <ClearIcon className="mr-2 h-4 w-4" />
-                    Clear
-                </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-            {isLoading ? <TableSkeleton /> : (
-            <Tabs defaultValue="all">
-                <TabsList>
-                <TabsTrigger value="all">All Transactions</TabsTrigger>
-                <TabsTrigger value="contributions">Contributions</TabsTrigger>
-                <TabsTrigger value="last_respect">Last Respect</TabsTrigger>
-                </TabsList>
-                <TabsContent value="all" className="mt-4">
-                  <TransactionsTable transactions={filteredTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
-                </TabsContent>
-                <TabsContent value="contributions" className="mt-4">
-                  <TransactionsTable transactions={contributionTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
-                </TabsContent>
-                <TabsContent value="last_respect" className="mt-4">
-                  <TransactionsTable transactions={lastRespectTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
-                </TabsContent>
-            </Tabs>
-          )}
-        </CardContent>
-      </Card>
+       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+            <Card>
+                <CardHeader>
+                <CardTitle>Transaction History</CardTitle>
+                <CardDescription>
+                    Search for transactions by description, member name, or category.
+                </CardDescription>
+                <div className="mt-4 flex flex-wrap gap-2">
+                    <Input
+                    placeholder="Filter transactions..."
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                    className="max-w-sm"
+                    />
+                     {date && (
+                        <Button variant="ghost" onClick={() => setDate(undefined)}>
+                            <ClearIcon className="mr-2 h-4 w-4" />
+                            Clear Date
+                        </Button>
+                    )}
+                </div>
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? <TableSkeleton /> : (
+                    <Tabs defaultValue="all">
+                        <TabsList>
+                        <TabsTrigger value="all">All Transactions</TabsTrigger>
+                        <TabsTrigger value="contributions">Contributions</TabsTrigger>
+                        <TabsTrigger value="last_respect">Last Respect</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="all" className="mt-4">
+                        <TransactionsTable transactions={filteredTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
+                        </TabsContent>
+                        <TabsContent value="contributions" className="mt-4">
+                        <TransactionsTable transactions={contributionTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
+                        </TabsContent>
+                        <TabsContent value="last_respect" className="mt-4">
+                        <TransactionsTable transactions={lastRespectTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
+                        </TabsContent>
+                    </Tabs>
+                )}
+                </CardContent>
+            </Card>
+        </div>
+        <div className="lg:col-span-1 space-y-4">
+            <Card>
+                 <CardHeader>
+                    <CardTitle>Filter by Date</CardTitle>
+                    <CardDescription>Select a day to view transactions.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center">
+                    <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        className="rounded-md border"
+                    />
+                </CardContent>
+            </Card>
+        </div>
+      </div>
 
        {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
@@ -1068,5 +1060,3 @@ export default function TransactionsClient() {
     </div>
   );
 }
-
-    
