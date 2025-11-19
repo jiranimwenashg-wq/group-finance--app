@@ -1,5 +1,4 @@
 
-
 export type Member = {
   id: string;
   name: string;
@@ -22,15 +21,16 @@ export type Transaction = {
 };
 
 export type InsurancePolicy = {
-  id: 'nhif' | 'private';
+  id: string;
   name: string;
-  monthlyPremium: number;
+  premiumAmount: number;
+  groupId: string;
 };
 
 export type InsurancePayment = {
   id: string;
   memberId: string;
-  policyId: 'nhif' | 'private';
+  policyId: string;
   payments: Record<string, 'Paid' | 'Unpaid' | 'Waived'>; // Key is month "YYYY-MM"
   groupId: string;
 };
@@ -42,9 +42,4 @@ export type Group = {
 };
 
 // Hardcoded Group ID for the entire application
-export const GROUP_ID = 'primary-group';
-
-export const insurancePolicies: InsurancePolicy[] = [
-    { id: 'nhif', name: 'NHIF', monthlyPremium: 500 },
-    { id: 'private', name: 'Private Cover', monthlyPremium: 2000 },
-];
+export const GROUP_ID = process.env.NEXT_PUBLIC_GROUP_ID!;

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
@@ -27,6 +27,7 @@ type ConstitutionDoc = {
 
 const CONSTITUTION_DOC_ID = "main-constitution";
 
+
 export default function ConstitutionClient() {
   const [constitutionText, setConstitutionText] = useState("");
   const [query, setQuery] = useState("");
@@ -39,7 +40,7 @@ export default function ConstitutionClient() {
 
   const constitutionPath = `groups/${GROUP_ID}/constitutions`;
   const constitutionQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !GROUP_ID) return null;
     return collection(firestore, constitutionPath);
   }, [firestore]);
 
@@ -57,7 +58,7 @@ export default function ConstitutionClient() {
   }, [constitutionDoc]);
 
   const handleSave = () => {
-    if (!firestore) return;
+    if (!firestore || !GROUP_ID) return;
     const docRef = doc(firestore, constitutionPath, CONSTITUTION_DOC_ID);
     setDocumentNonBlocking(docRef, {
         id: CONSTITUTION_DOC_ID,

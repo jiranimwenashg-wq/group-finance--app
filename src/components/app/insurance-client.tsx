@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -29,10 +29,6 @@ import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, a
 import { collection, doc, query } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
-
-type InsuranceClientProps = {
-  policies: InsurancePolicy[];
-};
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', {
@@ -71,20 +67,24 @@ function TableSkeleton() {
     )
 }
 
-export default function InsuranceClient({
-  policies,
-}: InsuranceClientProps) {
-  const [selectedPolicyId, setSelectedPolicyId] = useState<string>(
-    policies[0].id
-  );
+export default function InsuranceClient() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [filter, setFilter] = useState('');
   const firestore = useFirestore();
 
+  const policiesPath = `groups/${GROUP_ID}/insurancePolicies`;
+  const policiesQuery = useMemoFirebase(() => {
+    if (!firestore || !GROUP_ID) return null;
+    return collection(firestore, policiesPath);
+  }, [firestore]);
+  const { data: policies, isLoading: isLoadingPolicies } = useCollection<InsurancePolicy>(policiesQuery, policiesPath);
+  
+  const [selectedPolicyId, setSelectedPolicyId] = useState<string | undefined>(undefined);
+
   const membersPath = `groups/${GROUP_ID}/members`;
   const membersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !GROUP_ID) return null;
     return collection(firestore, membersPath);
   }, [firestore]);
   
@@ -92,7 +92,7 @@ export default function InsuranceClient({
 
   const paymentsPath = `groups/${GROUP_ID}/insurancePolicies/${selectedPolicyId}/payments`;
   const paymentsQuery = useMemoFirebase(() => {
-    if (!firestore || !selectedPolicyId) return null;
+    if (!firestore || !selectedPolicyId || !GROUP_ID) return null;
     const paymentsCollection = collection(firestore, paymentsPath);
     return query(paymentsCollection);
   }, [firestore, selectedPolicyId]);
@@ -106,10 +106,18 @@ export default function InsuranceClient({
     ).sort((a,b) => a.name.localeCompare(b.name)) || [],
     [members, filter]
   );
-  const selectedPolicy = useMemo(
-    () => policies.find(p => p.id === selectedPolicyId)!,
-    [selectedPolicyId, policies]
-  );
+  
+  const selectedPolicy = useMemo(() => {
+      if (!selectedPolicyId || !policies) return null;
+      return policies.find(p => p.id === selectedPolicyId);
+  }, [selectedPolicyId, policies]);
+
+
+  useEffect(() => {
+    if (policies && policies.length > 0 && !selectedPolicyId) {
+      setSelectedPolicyId(policies[0].id);
+    }
+  }, [policies, selectedPolicyId]);
 
   const months = useMemo(
     () =>
@@ -122,7 +130,7 @@ export default function InsuranceClient({
     month: string,
     checked: boolean
   ) => {
-    if(!firestore || !selectedPolicyId) return;
+    if(!firestore || !selectedPolicyId || !selectedPolicy || !GROUP_ID) return;
 
     const payment = payments?.find(p => p.memberId === memberId);
     
@@ -146,7 +154,7 @@ export default function InsuranceClient({
   };
   
   const handleMarkMonthAsPaid = () => {
-     if(!firestore || !activeMembers || !payments || !selectedPolicyId) return;
+     if(!firestore || !activeMembers || !payments || !selectedPolicyId || !selectedPolicy || !GROUP_ID) return;
      const monthKey = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}`;
 
      activeMembers.forEach(member => {
@@ -178,11 +186,12 @@ export default function InsuranceClient({
   };
 
   const monthlyStats = useMemo(() => {
+    if (!selectedPolicy) return { total: 0, collected: 0, outstanding: 0};
     const allActiveMembers = members?.filter(m => m.status === 'Active') || [];
     const monthKey = `${selectedYear}-${(selectedMonth + 1)
       .toString()
       .padStart(2, '0')}`;
-    const totalPossible = allActiveMembers.length * selectedPolicy.monthlyPremium;
+    const totalPossible = allActiveMembers.length * selectedPolicy.premiumAmount;
     let collected = 0;
 
     payments?.forEach(p => {
@@ -190,7 +199,7 @@ export default function InsuranceClient({
         allActiveMembers.some(am => am.id === p.memberId) &&
         p.payments[monthKey] === 'Paid'
       ) {
-        collected += selectedPolicy.monthlyPremium;
+        collected += selectedPolicy.premiumAmount;
       }
     });
 
@@ -213,7 +222,7 @@ export default function InsuranceClient({
     new Date().getFullYear() - 1,
   ];
 
-  const isLoading = isLoadingMembers || isLoadingPayments;
+  const isLoading = isLoadingMembers || isLoadingPayments || isLoadingPolicies;
 
   return (
     <div className="space-y-4">
@@ -223,12 +232,12 @@ export default function InsuranceClient({
             <p className="text-muted-foreground">Track member payments for insurance policies.</p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Select value={selectedPolicyId} onValueChange={setSelectedPolicyId}>
+          <Select value={selectedPolicyId} onValueChange={setSelectedPolicyId} disabled={isLoading}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select a policy" />
+              <SelectValue placeholder={isLoading ? "Loading..." : "Select a policy"} />
             </SelectTrigger>
             <SelectContent>
-              {policies.map(policy => (
+              {policies?.map(policy => (
                 <SelectItem key={policy.id} value={policy.id}>
                   {policy.name}
                 </SelectItem>

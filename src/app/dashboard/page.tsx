@@ -198,7 +198,7 @@ function DashboardData() {
   const transactionsPath = `groups/${GROUP_ID}/transactions`;
 
   const transactionsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !GROUP_ID) return null;
     return collection(firestore, transactionsPath);
   }, [firestore]);
 

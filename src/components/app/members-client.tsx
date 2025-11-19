@@ -164,7 +164,7 @@ export default function MembersClient() {
   const membersPath = `groups/${GROUP_ID}/members`;
 
   const membersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !GROUP_ID) return null;
     return collection(firestore, membersPath);
   }, [firestore]);
 
@@ -183,7 +183,7 @@ export default function MembersClient() {
   const handleAddMember = (
     newMemberData: Omit<Member, 'id' | 'joinDate' | 'status' | 'groupId'>
   ) => {
-    if (!firestore) return;
+    if (!firestore || !GROUP_ID) return;
     const newMember: Omit<Member, 'id'> = {
       ...newMemberData,
       joinDate: new Date(),

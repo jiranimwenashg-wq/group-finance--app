@@ -1,6 +1,5 @@
 import ReportsClient from "@/components/app/reports-client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { insurancePolicies } from "@/lib/data";
 import { Suspense } from "react";
 
 export default function ReportsPage() {
@@ -12,9 +11,7 @@ export default function ReportsPage() {
             <Skeleton className="h-[200px]" />
         </div>
     }>
-      <ReportsClient
-        policies={insurancePolicies}
-      />
+      <ReportsClient />
     </Suspense>
   );
 }

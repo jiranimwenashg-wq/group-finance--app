@@ -92,7 +92,7 @@ function MemberReportCard({ member, transactions, insurancePayments, policies }:
         <div className="flex-1">
           <CardTitle>{member.name}</CardTitle>
           <CardDescription>
-            <Badge variant={member.status === 'Active' ? 'default' : 'outline'} className={member.status === 'Active' ? "bg-green-100 text-green-800" : ""}>{member.status}</Badge>
+            <Badge variant={member.status === 'Active' ? 'default' : 'outline'} className={member.status === 'Active' ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" : ""}>{member.status}</Badge>
           </CardDescription>
         </div>
       </CardHeader>
@@ -127,7 +127,7 @@ function useAllInsurancePayments(policies: InsurancePolicy[]) {
     const firestore = useFirestore();
 
     const paymentQueries = useMemoFirebase(() => {
-        if (!firestore || !policies) return [];
+        if (!firestore || !policies || !GROUP_ID) return [];
         return policies.map(policy => {
             const path = `groups/${GROUP_ID}/insurancePolicies/${policy.id}/payments`;
             return {
@@ -151,30 +151,33 @@ function useAllInsurancePayments(policies: InsurancePolicy[]) {
     return { data: allPayments, isLoading };
 }
 
-interface ReportsClientProps {
-  policies: InsurancePolicy[];
-}
-
-export default function ReportsClient({ policies }: ReportsClientProps) {
+export default function ReportsClient() {
   const [filter, setFilter] = useState('');
   const firestore = useFirestore();
+
+  const policiesPath = `groups/${GROUP_ID}/insurancePolicies`;
+  const policiesQuery = useMemoFirebase(() => {
+      if(!firestore || !GROUP_ID) return null;
+      return collection(firestore, policiesPath);
+  }, [firestore]);
+  const { data: policies, isLoading: isLoadingPolicies } = useCollection<InsurancePolicy>(policiesQuery, policiesPath);
 
   const membersPath = `groups/${GROUP_ID}/members`;
   const transactionsPath = `groups/${GROUP_ID}/transactions`;
 
   const membersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !GROUP_ID) return null;
     return collection(firestore, membersPath);
   }, [firestore]);
 
   const transactionsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !GROUP_ID) return null;
     return collection(firestore, transactionsPath);
   }, [firestore]);
 
   const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersQuery, membersPath);
   const { data: transactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery, transactionsPath);
-  const { data: allPayments, isLoading: isLoadingInsurance } = useAllInsurancePayments(policies);
+  const { data: allPayments, isLoading: isLoadingInsurance } = useAllInsurancePayments(policies || []);
 
 
   const activeMembers = useMemo(() => {
@@ -185,7 +188,7 @@ export default function ReportsClient({ policies }: ReportsClientProps) {
       .sort((a,b) => a.name.localeCompare(b.name));
   }, [members, filter]);
 
-  if (isLoadingMembers || isLoadingTransactions || isLoadingInsurance) {
+  if (isLoadingMembers || isLoadingTransactions || isLoadingInsurance || isLoadingPolicies) {
       return (
          <div className="space-y-4">
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -222,7 +225,7 @@ export default function ReportsClient({ policies }: ReportsClientProps) {
               member={member}
               transactions={transactions || []}
               insurancePayments={allPayments || []}
-              policies={policies}
+              policies={policies || []}
             />
           </Link>
         ))}

@@ -114,12 +114,12 @@ export default function ScheduleClient() {
   const schedulePath = `groups/${GROUP_ID}/savingsSchedules`;
 
   const membersQuery = useMemoFirebase(() => {
-      if(!firestore) return null;
+      if(!firestore || !GROUP_ID) return null;
       return collection(firestore, membersPath);
   }, [firestore]);
   
   const scheduleQuery = useMemoFirebase(() => {
-    if(!firestore) return null;
+    if(!firestore || !GROUP_ID) return null;
     return collection(firestore, schedulePath);
   }, [firestore]);
 
@@ -138,7 +138,7 @@ export default function ScheduleClient() {
   )
 
   const generateSchedule = () => {
-    if (!firestore || activeMembers.length === 0) return;
+    if (!firestore || activeMembers.length === 0 || !GROUP_ID) return;
     
     const shuffledMembers = [...activeMembers].sort(() => Math.random() - 0.5);
     const currentMonth = new Date().getMonth();
@@ -185,7 +185,7 @@ export default function ScheduleClient() {
     item: ScheduleItem,
     newStatus: ScheduleStatus
   ) => {
-    if (!firestore) return;
+    if (!firestore || !GROUP_ID) return;
     const docRef = doc(firestore, 'groups', GROUP_ID, 'savingsSchedules', item.id);
     setDocumentNonBlocking(docRef, { status: newStatus }, { merge: true });
   };
@@ -201,7 +201,7 @@ export default function ScheduleClient() {
   };
 
   const confirmDelete = () => {
-    if (!selectedItem || !firestore) return;
+    if (!selectedItem || !firestore || !GROUP_ID) return;
     const docRef = doc(firestore, 'groups', GROUP_ID, 'savingsSchedules', selectedItem.id);
     setDocumentNonBlocking(docRef, {}, { merge: true }); // Empty set to delete
     toast({ title: "Payout Deleted", description: `The payout for ${selectedItem.memberName} has been removed.` });
@@ -210,7 +210,7 @@ export default function ScheduleClient() {
   };
 
   const handleSave = (values: z.infer<typeof editPayoutSchema>) => {
-    if (!selectedItem || !firestore) return;
+    if (!selectedItem || !firestore || !GROUP_ID) return;
     const docRef = doc(firestore, 'groups', GROUP_ID, 'savingsSchedules', selectedItem.id);
 
     setDocumentNonBlocking(docRef, {

@@ -49,7 +49,7 @@ function GroupProfileCard() {
   const firestore = useFirestore();
 
   const groupRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !GROUP_ID) return null;
     return doc(firestore, 'groups', GROUP_ID);
   }, [firestore]);
 
