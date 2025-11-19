@@ -24,7 +24,7 @@ import {
   DialogTrigger,
 } from '../ui/dialog';
 import { Textarea } from '../ui/textarea';
-import { Bot, Download, PlusCircle, Upload, Copy, Share2, Loader2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Bot, Download, PlusCircle, Upload, Copy, Share2, Loader2, MoreHorizontal, Pencil, Trash2, Calendar as CalendarIcon, X as ClearIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   parseMpesaSms,
@@ -71,6 +71,10 @@ import { GROUP_ID } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Calendar } from '../ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 
 const transactionSchema = z.object({
@@ -450,6 +454,7 @@ export default function TransactionsClient() {
   const [smsText, setSmsText] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   const [filter, setFilter] = useState('');
+  const [date, setDate] = useState<Date | undefined>(undefined);
   const [parsedTransaction, setParsedTransaction] = useState<ParseMpesaSmsOutput | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -558,6 +563,11 @@ export default function TransactionsClient() {
     return transactions
       .filter((transaction) => {
         const searchTerm = filter.toLowerCase();
+        
+        // Date filter
+        const dateMatch = !date || new Date(transaction.date).toDateString() === date.toDateString();
+
+        // Text filter
         const descriptionMatch = transaction.description
           .toLowerCase()
           .includes(searchTerm);
@@ -567,10 +577,11 @@ export default function TransactionsClient() {
         const categoryMatch = transaction.category
           .toLowerCase()
           .includes(searchTerm);
-        return descriptionMatch || (memberNameMatch ?? false) || categoryMatch;
+        
+        return dateMatch && (descriptionMatch || (memberNameMatch ?? false) || categoryMatch);
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, filter]);
+  }, [transactions, filter, date]);
 
   const contributionTransactions = useMemo(() => {
     return filteredTransactions.filter((t) => t.category === 'Contribution');
@@ -870,12 +881,42 @@ export default function TransactionsClient() {
           <CardDescription>
             Search for transactions by description, member name, or category.
           </CardDescription>
-          <Input
-            placeholder="Filter transactions..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="mt-4 max-w-sm"
-          />
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Input
+              placeholder="Filter transactions..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="max-w-sm"
+            />
+             <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-[240px] justify-start text-left font-normal",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date ? format(date, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            {date && (
+                <Button variant="ghost" onClick={() => setDate(undefined)}>
+                    <ClearIcon className="mr-2 h-4 w-4" />
+                    Clear
+                </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
             {isLoading ? <TableSkeleton /> : (
