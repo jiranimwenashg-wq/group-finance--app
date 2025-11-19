@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import { Suspense, useMemo } from 'react';
@@ -11,32 +12,18 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { GROUP_ID, Transaction } from '@/lib/data';
-
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'KES',
-  }).format(amount);
+import { formatCurrency } from '@/components/app/recent-transactions';
 
 const OverviewChartData = dynamic(() => import('@/components/app/overview-chart').then(mod => mod.OverviewChartData), {
     loading: () => <Skeleton className="lg:col-span-3 h-[400px]" />,
     ssr: false
 });
 
-const RecentTransactions = dynamic(() => import('@/components/app/transactions-client').then(mod => mod.RecentTransactions), {
+const RecentTransactions = dynamic(() => import('@/components/app/recent-transactions').then(mod => mod.RecentTransactions), {
     loading: () => <RecentTransactionsSkeleton />,
     ssr: false
 });
