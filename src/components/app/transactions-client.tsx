@@ -126,7 +126,8 @@ function AddTransactionDialog({
   };
   
   const sortedMembers = useMemo(() => {
-    return members
+    if (!members) return [];
+    return [...members]
       .filter((m) => m.status === 'Active')
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [members]);
