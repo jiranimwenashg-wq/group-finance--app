@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
@@ -10,12 +10,22 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { queryConstitution } from "@/ai/flows/query-constitution";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
+import { GROUP_ID } from "@/lib/data";
 
 type Message = {
   role: "user" | "ai";
   content: string;
 };
+
+type ConstitutionDoc = {
+  id: string;
+  content: string;
+  groupId: string;
+}
+
+const CONSTITUTION_DOC_ID = "main-constitution";
 
 export default function ConstitutionClient() {
   const [constitutionText, setConstitutionText] = useState("");
@@ -25,7 +35,37 @@ export default function ConstitutionClient() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useUser();
+  const firestore = useFirestore();
 
+  const constitutionPath = `groups/${GROUP_ID}/constitutions`;
+  const constitutionQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, constitutionPath);
+  }, [firestore]);
+
+  const { data: constitutions, isLoading: isLoadingConstitution } = useCollection<ConstitutionDoc>(constitutionQuery, constitutionPath);
+
+  const constitutionDoc = useMemo(() => {
+    return constitutions?.find(c => c.id === CONSTITUTION_DOC_ID);
+  }, [constitutions]);
+
+
+  useEffect(() => {
+    if (constitutionDoc) {
+      setConstitutionText(constitutionDoc.content);
+    }
+  }, [constitutionDoc]);
+
+  const handleSave = () => {
+    if (!firestore) return;
+    const docRef = doc(firestore, constitutionPath, CONSTITUTION_DOC_ID);
+    setDocumentNonBlocking(docRef, {
+        id: CONSTITUTION_DOC_ID,
+        groupId: GROUP_ID,
+        content: constitutionText,
+    }, { merge: true });
+    toast({ title: "Constitution Saved!", description: "The AI assistant will now use this document." });
+  }
 
   const handleQuery = async () => {
     if (!constitutionText.trim()) {
@@ -112,14 +152,15 @@ export default function ConstitutionClient() {
         </CardHeader>
         <CardContent>
           <Textarea
-            placeholder="[Article 1: Name of the Group]..."
+            placeholder={isLoadingConstitution ? "Loading constitution..." : "[Article 1: Name of the Group]..."}
             className="h-96"
             value={constitutionText}
             onChange={(e) => setConstitutionText(e.target.value)}
+            disabled={isLoadingConstitution}
           />
         </CardContent>
         <CardFooter className="flex-col items-start gap-2">
-            <Button className="w-full" onClick={() => toast({ title: "Constitution Saved!", description: "The AI assistant will now use this document."})}>Save Constitution</Button>
+            <Button className="w-full" onClick={handleSave}>Save Constitution</Button>
             <Button variant="outline" className="w-full" onClick={handleImportClick}>
               <Upload className="mr-2 h-4 w-4" />
               Import File (.txt)
