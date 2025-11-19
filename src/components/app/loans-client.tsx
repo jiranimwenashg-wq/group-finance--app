@@ -49,7 +49,7 @@ import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, query, where } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
 import { Banknote, MoreHorizontal, PlusCircle, HandCoins } from 'lucide-react';
@@ -117,7 +117,7 @@ export default function LoansClient() {
 
   const loansQuery = useMemoFirebase(() => {
     if (!firestore || !GROUP_ID) return null;
-    return collection(firestore, loansPath);
+    return query(collection(firestore, loansPath), where('groupId', '==', GROUP_ID));
   }, [firestore]);
 
   const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersQuery, membersPath);

@@ -75,6 +75,10 @@ service cloud.firestore {
       allow read: if isGroupMember(groupId);
       allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
     }
+     match /groups/{groupId}/transactions {
+      allow list: if isGroupMember(groupId) && request.query.groupId == groupId;
+    }
+
 
     // /groups/{groupId}/members/{memberId} (Consider tightening `write` to admin/owner)
     match /groups/{groupId}/members/{memberId} {
@@ -98,6 +102,9 @@ service cloud.firestore {
     match /groups/{groupId}/loans/{loanId} {
       allow read: if isGroupMember(groupId);
       allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
+    }
+     match /groups/{groupId}/loans {
+      allow list: if isGroupMember(groupId) && request.query.groupId == groupId;
     }
 
     // ** 3. Insurance Policies and Nested Payments (Fixed Structure) **
