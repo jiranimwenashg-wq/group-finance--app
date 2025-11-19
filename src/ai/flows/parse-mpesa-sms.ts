@@ -49,7 +49,7 @@ const prompt = ai.definePrompt({
 
   Additionally, analyze the sender or recipient of the transaction. Compare this name against the provided list of members.
   - If the name in the SMS corresponds to a name in the members list, set the 'memberId' field in the output to the matching member's ID.
-  - If no match is found, leave the 'memberId' field null.
+  - If no match is found, do not include the 'memberId' field in the output.
 
   Members List:
   {{#each members}}
