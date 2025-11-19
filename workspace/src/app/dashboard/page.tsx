@@ -11,19 +11,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { GROUP_ID, Transaction } from '@/lib/data';
+import { Transaction } from '@/lib/data';
+
+const GROUP_ID = process.env.NEXT_PUBLIC_GROUP_ID!;
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', {

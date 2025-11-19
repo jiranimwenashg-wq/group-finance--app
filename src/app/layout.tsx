@@ -14,16 +14,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'FinanceFlow AI',
   description: "The effortless way to manage your community group's finances.",
-  manifest: "/manifest.json",
   icons: {
     icon: '/favicon.ico',
-    apple: '/apple-icon.png',
   },
   themeColor: '#ffffff',
-  appleWebApp: {
-    title: 'FinanceFlowAI',
-    statusBarStyle: 'default',
-  }
 };
 
 export default function RootLayout({
