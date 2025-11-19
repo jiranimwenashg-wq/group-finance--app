@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
@@ -8,6 +9,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { useMemo } from "react";
 
 type OverviewChartProps = {
   data: { month: string; income: number; expenses: number }[];
@@ -58,4 +60,37 @@ export function OverviewChart({ data }: OverviewChartProps) {
         </CardContent>
     </Card>
   );
+}
+
+export function OverviewChartData({ transactions }: { transactions: any[] }) {
+  const chartData = useMemo(() => {
+    // This is a simplified example. In a real app, you'd aggregate by month.
+    const incomeByMonth: Record<string, number> = {};
+    const expensesByMonth: Record<string, number> = {};
+
+    transactions.forEach((t) => {
+      const date = new Date(t.date);
+      const month = date.toLocaleString('default', { month: 'short' });
+      if (t.type === 'Income') {
+        incomeByMonth[month] = (incomeByMonth[month] || 0) + t.amount;
+      } else {
+        expensesByMonth[month] = (expensesByMonth[month] || 0) + t.amount;
+      }
+    });
+
+    const allMonths = [
+      ...new Set([
+        ...Object.keys(incomeByMonth),
+        ...Object.keys(expensesByMonth),
+      ]),
+    ];
+
+    return allMonths.map((month) => ({
+      month,
+      income: incomeByMonth[month] || 0,
+      expenses: (expensesByMonth[month] || 0) * -1,
+    }));
+  }, [transactions]);
+
+  return <OverviewChart data={chartData} />;
 }

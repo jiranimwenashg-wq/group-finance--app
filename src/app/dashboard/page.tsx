@@ -1,14 +1,15 @@
+
 'use client';
 
 import { Suspense, useMemo } from 'react';
 import { ArrowDownLeft, ArrowUpRight, Scale } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { OverviewChart } from '@/components/app/overview-chart';
 import {
   Table,
   TableBody,
@@ -28,6 +29,17 @@ const formatCurrency = (amount: number) =>
     style: 'currency',
     currency: 'KES',
   }).format(amount);
+
+const OverviewChartData = dynamic(() => import('@/components/app/overview-chart').then(mod => mod.OverviewChartData), {
+    loading: () => <Skeleton className="lg:col-span-3 h-[400px]" />,
+    ssr: false
+});
+
+const RecentTransactions = dynamic(() => import('@/components/app/transactions-client').then(mod => mod.RecentTransactions), {
+    loading: () => <RecentTransactionsSkeleton />,
+    ssr: false
+});
+
 
 function OverviewCards({ transactions }: { transactions: Transaction[] }) {
   const overview = useMemo(() => {
@@ -167,63 +179,6 @@ function OverviewCardsSkeleton() {
   );
 }
 
-function RecentTransactions({ transactions }: { transactions: Transaction[] }) {
-  const recentTransactions = useMemo(
-    () => transactions.slice(0, 5),
-    [transactions]
-  );
-
-  return (
-    <Card className="lg:col-span-4">
-      <CardHeader>
-        <CardTitle>Recent Transactions</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Description</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {recentTransactions.map((transaction) => (
-              <TableRow key={transaction.id}>
-                <TableCell>
-                  <div className="font-medium">{transaction.description}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {new Date(transaction.date).toLocaleDateString()}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      transaction.type === 'Income' ? 'outline' : 'destructive'
-                    }
-                    className={
-                      transaction.type === 'Income'
-                        ? 'border-green-500 text-green-500'
-                        : ''
-                    }
-                  >
-                    {transaction.type}
-                  </Badge>
-                </TableCell>
-                <TableCell>{transaction.category}</TableCell>
-                <TableCell className="text-right">
-                  {formatCurrency(transaction.amount)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-}
-
 function RecentTransactionsSkeleton() {
   return (
     <Card className="lg:col-span-4">
@@ -235,39 +190,6 @@ function RecentTransactionsSkeleton() {
       </CardContent>
     </Card>
   );
-}
-
-function OverviewChartData({ transactions }: { transactions: Transaction[] }) {
-  const chartData = useMemo(() => {
-    // This is a simplified example. In a real app, you'd aggregate by month.
-    const incomeByMonth: Record<string, number> = {};
-    const expensesByMonth: Record<string, number> = {};
-
-    transactions.forEach((t) => {
-      const date = new Date(t.date);
-      const month = date.toLocaleString('default', { month: 'short' });
-      if (t.type === 'Income') {
-        incomeByMonth[month] = (incomeByMonth[month] || 0) + t.amount;
-      } else {
-        expensesByMonth[month] = (expensesByMonth[month] || 0) + t.amount;
-      }
-    });
-
-    const allMonths = [
-      ...new Set([
-        ...Object.keys(incomeByMonth),
-        ...Object.keys(expensesByMonth),
-      ]),
-    ];
-
-    return allMonths.map((month) => ({
-      month,
-      income: incomeByMonth[month] || 0,
-      expenses: (expensesByMonth[month] || 0) * -1,
-    }));
-  }, [transactions]);
-
-  return <OverviewChart data={chartData} />;
 }
 
 function DashboardData() {
