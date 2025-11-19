@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { initiateEmailSignUp, initiateGoogleSignIn } from '@/firebase/non-blocking-login';
 import { useRedirectIfAuthenticated } from '@/hooks/use-redirect-if-authenticated';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +14,7 @@ import { Icons } from '@/components/icons';
 export default function SignupPage() {
   useRedirectIfAuthenticated();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -42,7 +43,7 @@ export default function SignupPage() {
         return;
     }
 
-    initiateEmailSignUp(auth, email, password, (error) => {
+    initiateEmailSignUp(auth, firestore, email, password, name, (error) => {
         toast({
             variant: 'destructive',
             title: 'Sign-up Failed',
@@ -52,7 +53,7 @@ export default function SignupPage() {
   };
 
   const handleGoogleSignIn = () => {
-    initiateGoogleSignIn(auth, (error) => {
+    initiateGoogleSignIn(auth, firestore, (error) => {
         toast({
             variant: 'destructive',
             title: 'Sign-in Failed',

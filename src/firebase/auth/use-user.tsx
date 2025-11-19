@@ -3,10 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import type { User } from 'firebase/auth';
-import { useAuth, setDocumentNonBlocking, useMemoFirebase } from '@/firebase/provider';
-import { doc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-import { GROUP_ID } from '@/lib/data';
+import { useAuth } from '@/firebase/provider';
+
 
 export interface UserHookResult {
   user: User | null;
@@ -16,15 +14,9 @@ export interface UserHookResult {
 
 export const useUser = (): UserHookResult => {
   const auth = useAuth();
-  const firestore = useFirestore();
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [isUserLoading, setIsUserLoading] = useState(true);
   const [userError, setUserError] = useState<Error | null>(null);
-
-  const userRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'groups', GROUP_ID, 'users', user.uid);
-  }, [firestore, user]);
 
   useEffect(() => {
     if (!auth) {
@@ -37,16 +29,6 @@ export const useUser = (): UserHookResult => {
         setUser(firebaseUser);
         setIsUserLoading(false);
         setUserError(null);
-
-        if (firebaseUser && userRef) {
-            // Create user profile if it doesn't exist
-            setDocumentNonBlocking(userRef, {
-                id: firebaseUser.uid,
-                email: firebaseUser.email,
-                name: firebaseUser.displayName,
-                groupId: GROUP_ID,
-            }, { merge: true });
-        }
       },
       (error) => {
         setUser(null);
@@ -56,7 +38,7 @@ export const useUser = (): UserHookResult => {
     );
 
     return () => unsubscribe();
-  }, [auth, userRef]);
+  }, [auth]);
 
   return { user, isUserLoading, userError };
 };
