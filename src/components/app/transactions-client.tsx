@@ -75,11 +75,14 @@ import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { formatCurrency } from './recent-transactions';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { cn } from '@/lib/utils';
 
 
 const transactionSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   amount: z.coerce.number().positive('Amount must be positive'),
+  date: z.date({ required_error: 'A date is required.' }),
   type: z.enum(['Income', 'Expense']),
   category: z.enum([
     'Contribution',
@@ -97,7 +100,7 @@ function AddTransactionDialog({
   onAddTransaction,
 }: {
   members: Member[];
-  onAddTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => void;
+  onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
 }) {
   const [open, setOpen] = useState(false);
   const form = useForm<z.infer<typeof transactionSchema>>({
@@ -105,6 +108,7 @@ function AddTransactionDialog({
     defaultValues: {
       description: '',
       amount: 0,
+      date: new Date(),
       type: 'Income',
       category: 'Contribution',
     },
@@ -115,13 +119,19 @@ function AddTransactionDialog({
       ? members.find((m) => m.id === values.memberId)
       : undefined;
 
-    const newTransaction: Omit<Transaction, 'id' | 'date'> = {
+    const newTransaction: Omit<Transaction, 'id'> = {
       ...values,
       memberName: member?.name,
       groupId: GROUP_ID,
     };
     onAddTransaction(newTransaction);
-    form.reset();
+    form.reset({
+      description: '',
+      amount: 0,
+      date: new Date(),
+      type: 'Income',
+      category: 'Contribution',
+    });
     setOpen(false);
   };
   
@@ -158,6 +168,44 @@ function AddTransactionDialog({
                     <FormControl>
                       <Input placeholder="e.g., July Contribution" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn(
+                              'w-full pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground'
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, 'PPP')
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -490,6 +538,7 @@ export default function TransactionsClient() {
       editForm.reset({
         description: selectedTransaction.description,
         amount: selectedTransaction.amount,
+        date: new Date(selectedTransaction.date),
         type: selectedTransaction.type,
         category: selectedTransaction.category,
         memberId: selectedTransaction.memberId,
@@ -498,14 +547,10 @@ export default function TransactionsClient() {
   }, [selectedTransaction, editForm]);
 
 
-  const handleAddTransaction = (transaction: Omit<Transaction, 'id' | 'date'>) => {
+  const handleAddTransaction = (transaction: Omit<Transaction, 'id'>) => {
     if (!firestore) return;
-    const newTransaction = {
-      ...transaction,
-      date: new Date(),
-    }
     const transactionsRef = collection(firestore, 'groups', GROUP_ID, 'transactions');
-    addDocumentNonBlocking(transactionsRef, newTransaction);
+    addDocumentNonBlocking(transactionsRef, transaction);
     toast({
       title: 'Transaction Added',
       description: `A new transaction for ${formatCurrency(transaction.amount)} has been recorded.`,
@@ -962,6 +1007,44 @@ export default function TransactionsClient() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn(
+                              'w-full pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground'
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, 'PPP')
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
