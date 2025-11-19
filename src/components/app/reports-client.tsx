@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -136,9 +137,9 @@ function useAllInsurancePayments(policies: InsurancePolicy[]) {
         });
     }, [firestore, policies]);
 
-    const results = paymentQueries.map(({ query, path }) => {
+    const results = paymentQueries.map(({ query: memoizedQuery, path }) => {
         // eslint-disable-next-line react-hooks/rules-of-hooks
-        return useCollection<InsurancePayment>(query, path);
+        return useCollection<InsurancePayment>(memoizedQuery, path);
     });
 
     const allPayments = useMemo(() => {
