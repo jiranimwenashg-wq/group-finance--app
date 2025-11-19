@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Auth,
@@ -58,6 +59,7 @@ const createUserDocument = (firestore: Firestore, uid: string, name: string | nu
         groupId: GROUP_ID,
         name: name,
         email: email,
+        role: "member", // Assign 'member' role by default
     }, { merge: true });
 };
 

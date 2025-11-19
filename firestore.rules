@@ -1,124 +1,128 @@
-/**
- * @file Firestore Security Rules
- * @description This ruleset enforces a strict group-centric security model.
- */
+
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Helper Functions ---
+    // ----------------------
+    // Helper Functions
+    // ----------------------
 
-    /**
-     * @description Checks if the user is signed in.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Checks if the authenticated user's ID matches the provided userId.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * @description Checks if the current user is a member of the specified group.
-     * Membership is determined by the existence of the user's document in the /groups/{groupId}/users/ subcollection.
-     */
-    function isGroupMember(groupId) {
-      // The `exists` call must be conditional on `isSignedIn()` to avoid null errors.
-      return isSignedIn() && exists(/databases/$(database)/documents/groups/$(groupId)/users/$(request.auth.uid));
+    // Get the role of the current user in a group
+    function userRole(groupId) {
+      return get(
+        /databases/$(database)/documents/groups/$(groupId)/users/$(request.auth.uid)
+      ).data.role;
     }
 
-    // --- Top-Level Group Collection ---
+    function isGroupMember(groupId) {
+      return isSignedIn() &&
+        exists(
+          /databases/$(database)/documents/groups/$(groupId)/users/$(request.auth.uid)
+        );
+    }
+
+    function isAdmin(groupId) {
+      return isGroupMember(groupId) &&
+        (userRole(groupId) == "admin" || userRole(groupId) == "owner");
+    }
+
+    function isOwnerOfGroup(groupId) {
+      return isGroupMember(groupId) && userRole(groupId) == "owner";
+    }
+
+    // ----------------------
+    //  Groups Collection
+    // ----------------------
 
     match /groups/{groupId} {
       allow get: if isGroupMember(groupId);
-      allow list: if false; // Prevent listing all groups.
+      allow list: if false;
 
-      // When creating, the document ID must be equal to the path variable {groupId}
-      allow create: if isSignedIn() && request.resource.data.id == groupId;
+      // Only signed-in user may create a group; they become owner
+      allow create: if isSignedIn()
+                    && request.resource.data.id == groupId
+                    && request.resource.data.ownerId == request.auth.uid;
 
-      // When updating, the user must be a member, and the resource.data.id must not change
-      allow update: if isGroupMember(groupId) && request.resource.data.id == groupId;
-      
-      // Note: Delete is disabled as per the original ruleset, requiring admin/owner roles (not implemented here)
-      allow delete: if false;
+      // Only owner or admin can update group
+      allow update: if isAdmin(groupId)
+                    && request.resource.data.id == groupId;
+
+      allow delete: if false; // Disable unless you want owner-only delete
     }
 
-    // --- Subcollections ---
-
-    // ** 1. Group Users Collection **
+    // -------------------------------
+    //  /groups/{groupId}/users/{userId}
+    // -------------------------------
     match /groups/{groupId}/users/{userId} {
-      // User can only read their own user document within a group
-      allow get: if isOwner(userId); 
-      allow list: if false; // Deny listing all users, for privacy
 
-      // User can only create their own document, and validate IDs match path and group
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      // User creates their own membership
       allow create: if isOwner(userId)
                     && request.resource.data.groupId == groupId
-                    && request.resource.data.id == userId;
-      
-      // User can only update their own document, and validate key fields are unchanged
-      allow update: if isOwner(userId)
-                    && request.resource.data.groupId == groupId;
+                    && request.resource.data.id == userId
+                    && request.resource.data.role == "member";
 
+      // UPDATE RULE:  
+      // Only owner of the group may change roles.
+      // User may update their own name, avatar, etc.
+      allow update: if (
+                      // Self-update (non-role fields only)
+                      isOwner(userId)
+                      && request.resource.data.role == resource.data.role
+                    )
+                    ||
+                    (
+                      // Owner updating roles
+                      isOwnerOfGroup(groupId)
+                    );
+
+      // A user may delete their own membership
       allow delete: if isOwner(userId);
     }
 
-    // ** 2. Group Documents with Group-Member Read/Write **
-    // Collections where any group member can read, create, update, and delete
-    
-    // /groups/{groupId}/transactions/{transactionId}
-    match /groups/{groupId}/transactions/{transactionId} {
-      allow read: if isGroupMember(groupId);
-      allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-    }
-     match /groups/{groupId}/transactions {
-      allow list: if isGroupMember(groupId) && request.query.groupId == groupId;
+    // -----------------------------
+    // Generic Group Member Collections (CRUD allowed for members)
+    // -----------------------------
+
+    match /groups/{groupId}/{collection}/{docId}
+      where collection in [
+        "transactions",
+        "members",
+        "constitutions",
+        "savingsSchedules",
+        "loans"
+      ] {
+
+      allow read, list: if isGroupMember(groupId);
+
+      allow write: if isGroupMember(groupId)
+                   && request.resource.data.groupId == groupId;
     }
 
-
-    // /groups/{groupId}/members/{memberId} (Consider tightening `write` to admin/owner)
-    match /groups/{groupId}/members/{memberId} {
-      allow read: if isGroupMember(groupId);
-      allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-    }
-
-    // /groups/{groupId}/constitutions/{constitutionId}
-    match /groups/{groupId}/constitutions/{constitutionId} {
-      allow read: if isGroupMember(groupId);
-      allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-    }
-
-    // /groups/{groupId}/savingsSchedules/{savingsScheduleId}
-    match /groups/{groupId}/savingsSchedules/{savingsScheduleId} {
-      allow read: if isGroupMember(groupId);
-      allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-    }
-
-    // /groups/{groupId}/loans/{loanId}
-    match /groups/{groupId}/loans/{loanId} {
-      allow read: if isGroupMember(groupId);
-      allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-    }
-     match /groups/{groupId}/loans {
-      allow list: if isGroupMember(groupId) && request.query.groupId == groupId;
-    }
-
-    // ** 3. Insurance Policies and Nested Payments (Fixed Structure) **
-    
-    // /groups/{groupId}/insurancePolicies/{insurancePolicyId}
+    // ------------------------------
+    // Insurance Policies + Payments
+    // ------------------------------
     match /groups/{groupId}/insurancePolicies/{insurancePolicyId} {
-      allow read: if isGroupMember(groupId);
-      allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-      
-      // ** The nested match block must be placed directly here **
-      // /groups/{groupId}/insurancePolicies/{insurancePolicyId}/payments/{paymentId}
+      allow read, list: if isGroupMember(groupId);
+      allow write: if isAdmin(groupId)
+                   && request.resource.data.groupId == groupId;
+
+      // Payments subcollection
       match /payments/{paymentId} {
-        allow read: if isGroupMember(groupId);
-        allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
+        allow read, list: if isGroupMember(groupId);
+        allow write: if isGroupMember(groupId)
+                     && request.resource.data.groupId == groupId;
       }
     }
   }

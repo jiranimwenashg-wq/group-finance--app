@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { Input } from '../ui/input';
@@ -29,12 +29,24 @@ import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, a
 import { collection, doc, query } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { PlusCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'KES',
   }).format(amount);
+
+const policySchema = z.object({
+    name: z.string().min(1, 'Policy name is required'),
+    premiumAmount: z.coerce.number().positive('Premium amount must be a positive number'),
+});
 
 function TableSkeleton() {
     return (
@@ -66,6 +78,83 @@ function TableSkeleton() {
         </div>
     )
 }
+
+function AddPolicyDialog() {
+    const [open, setOpen] = useState(false);
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const form = useForm<z.infer<typeof policySchema>>({
+        resolver: zodResolver(policySchema),
+    });
+
+    const onSubmit = (values: z.infer<typeof policySchema>) => {
+        if (!firestore) return;
+        const policiesRef = collection(firestore, `groups/${GROUP_ID}/insurancePolicies`);
+        addDocumentNonBlocking(policiesRef, {
+            ...values,
+            groupId: GROUP_ID,
+        });
+
+        toast({
+            title: 'Policy Created',
+            description: `The "${values.name}" policy has been successfully created.`,
+        });
+
+        form.reset();
+        setOpen(false);
+    };
+    
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline">
+                    <PlusCircle className="mr-2 size-4" />
+                    New Policy
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Create New Insurance Policy</DialogTitle>
+                    <DialogDescription>Fill in the details for the new insurance policy.</DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Policy Name</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., NHIF" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="premiumAmount"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Premium Amount (Monthly)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" placeholder="e.g., 500" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="submit">Create Policy</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 
 export default function InsuranceClient() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -232,6 +321,7 @@ export default function InsuranceClient() {
             <p className="text-muted-foreground">Track member payments for insurance policies.</p>
         </div>
         <div className="flex shrink-0 gap-2">
+          <AddPolicyDialog />
           <Select value={selectedPolicyId} onValueChange={setSelectedPolicyId} disabled={isLoading}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder={isLoading ? "Loading..." : "Select a policy"} />

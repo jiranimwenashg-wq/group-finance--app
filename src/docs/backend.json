@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Group": {
@@ -21,12 +22,17 @@
         "description": {
           "type": "string",
           "description": "A description of the group."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user who owns the group."
         }
       },
       "required": [
         "id",
         "name",
-        "currency"
+        "currency",
+        "ownerId"
       ]
     },
     "User": {
@@ -51,13 +57,19 @@
         "name": {
           "type": "string",
           "description": "Full name of the user."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role in the group.",
+          "enum": ["owner", "admin", "member"]
         }
       },
       "required": [
         "id",
         "groupId",
         "email",
-        "name"
+        "name",
+        "role"
       ]
     },
     "Transaction": {
