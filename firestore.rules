@@ -12,6 +12,7 @@
  * - /groups/{groupId}/insurancePolicies/{insurancePolicyId}/payments/{paymentId}: Insurance payments made by members.
  * - /groups/{groupId}/constitutions/{constitutionId}: The group's constitution document.
  * - /groups/{groupId}/savingsSchedules/{savingsScheduleId}: Savings schedules for the group.
+ * - /groups/{groupId}/loans/{loanId}: Loans issued to members.
  *
  * Key Security Decisions:
  * - No user listing is allowed at the top level.
@@ -93,12 +94,8 @@ service cloud.firestore {
      * @principle Restricts access to transactions based on group membership; enforces group-level scoping.
      */
     match /groups/{groupId}/transactions/{transactionId} {
-      allow get: if isGroupMember(groupId);
-      allow list: if isGroupMember(groupId);
-
-      allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-      allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-      allow delete: if isGroupMember(groupId);
+      allow read: if isGroupMember(groupId);
+      allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
     }
 
     /**
@@ -111,12 +108,8 @@ service cloud.firestore {
      * @principle Restricts access to members based on group membership; enforces group-level scoping.
      */
     match /groups/{groupId}/members/{memberId} {
-      allow get: if isGroupMember(groupId);
-      allow list: if isGroupMember(groupId);
-
-      allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-      allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-      allow delete: if isGroupMember(groupId);
+      allow read: if isGroupMember(groupId);
+      allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
     }
 
     /**
@@ -129,12 +122,8 @@ service cloud.firestore {
      * @principle Restricts access to insurance policies based on group membership; enforces group-level scoping.
      */
     match /groups/{groupId}/insurancePolicies/{insurancePolicyId} {
-      allow get: if isGroupMember(groupId);
-      allow list: if isGroupMember(groupId);
-
-      allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-      allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-      allow delete: if isGroupMember(groupId);
+      allow read: if isGroupMember(groupId);
+      allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
       
       /**
        * @description Controls access to insurance payment documents within an insurance policy.
@@ -146,11 +135,8 @@ service cloud.firestore {
        * @principle Restricts access to insurance payments based on the parent policy's group membership.
        */
       match /payments/{paymentId} {
-        allow get: if isGroupMember(groupId);
-        allow list: if isGroupMember(groupId);
-        allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-        allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-        allow delete: if isGroupMember(groupId);
+        allow read: if isGroupMember(groupId);
+        allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
       }
     }
     
@@ -164,12 +150,8 @@ service cloud.firestore {
      * @principle Restricts access to constitution documents based on group membership; enforces group-level scoping.
      */
     match /groups/{groupId}/constitutions/{constitutionId} {
-      allow get: if isGroupMember(groupId);
-      allow list: if isGroupMember(groupId);
-
-      allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-      allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-      allow delete: if isGroupMember(groupId);
+      allow read: if isGroupMember(groupId);
+      allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
     }
 
     /**
@@ -182,12 +164,22 @@ service cloud.firestore {
      * @principle Restricts access to savings schedule documents based on group membership; enforces group-level scoping.
      */
     match /groups/{groupId}/savingsSchedules/{savingsScheduleId} {
-      allow get: if isGroupMember(groupId);
-      allow list: if isGroupMember(groupId);
+      allow read: if isGroupMember(groupId);
+      allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
+    }
 
-      allow create: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-      allow update: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
-      allow delete: if isGroupMember(groupId);
+    /**
+     * @description Controls access to loan documents within a group.
+     * @path /groups/{groupId}/loans/{loanId}
+     * @allow (create) - Authenticated group member creates a new loan.
+     *    - Request: auth.uid = "user123", resource.data.groupId = "group456"
+     * @deny (create) - User tries to create a loan for a different group.
+     *    - Request: auth.uid = "user123", resource.data.groupId = "group789"
+     * @principle Restricts access to loans based on group membership.
+     */
+    match /groups/{groupId}/loans/{loanId} {
+      allow read: if isGroupMember(groupId);
+      allow write: if isGroupMember(groupId) && request.resource.data.groupId == groupId;
     }
   }
 }
