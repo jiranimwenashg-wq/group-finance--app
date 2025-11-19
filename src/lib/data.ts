@@ -14,10 +14,11 @@ export type Transaction = {
   description: string;
   amount: number;
   type: 'Income' | 'Expense';
-  category: 'Contribution' | 'Late Fee' | 'Project' | 'Social Fund' | 'Operational' | 'Last Respect';
+  category: 'Contribution' | 'Late Fee' | 'Project' | 'Social Fund' | 'Operational' | 'Last Respect' | 'Loan Repayment';
   memberId?: string;
   memberName?: string;
   groupId: string;
+  loanId?: string;
 };
 
 export type InsurancePolicy = {
@@ -40,6 +41,19 @@ export type Group = {
   name: string;
   currency: string;
 };
+
+export type Loan = {
+  id: string;
+  groupId: string;
+  memberId: string;
+  memberName: string;
+  principal: number;
+  interestRate: number;
+  balance: number;
+  issueDate: Date;
+  status: 'Active' | 'Paid Off';
+};
+
 
 // Hardcoded Group ID for the entire application
 export const GROUP_ID = process.env.NEXT_PUBLIC_GROUP_ID!;

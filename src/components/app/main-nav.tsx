@@ -11,6 +11,7 @@ import {
   FileCheck,
   Calendar,
   HelpCircle,
+  Landmark
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -29,6 +30,7 @@ const financialLinks = [
   { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className={navIconClasses} /> },
   { href: "/dashboard/transactions", label: "Transactions", icon: <Banknote className={navIconClasses} /> },
   { href: "/dashboard/reports", label: "Reports", icon: <FileCheck className={navIconClasses} /> },
+  { href: "/dashboard/loans", label: "Loans", icon: <Landmark className={navIconClasses} /> },
 ];
 
 const membershipLinks = [
