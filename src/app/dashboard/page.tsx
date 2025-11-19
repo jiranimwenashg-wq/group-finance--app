@@ -270,7 +270,7 @@ function OverviewChartData({ transactions }: { transactions: Transaction[] }) {
   return <OverviewChart data={chartData} />;
 }
 
-export default function DashboardPage() {
+function DashboardData() {
   const firestore = useFirestore();
   const transactionsPath = `groups/${GROUP_ID}/transactions`;
 
@@ -284,6 +284,34 @@ export default function DashboardPage() {
     transactionsPath
   );
 
+  if (isLoading || !transactions) {
+    return (
+      <>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <OverviewCardsSkeleton />
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
+          <Skeleton className="lg:col-span-3 h-[400px]" />
+          <RecentTransactionsSkeleton />
+        </div>
+      </>
+    )
+  }
+  
+  return (
+    <>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <OverviewCards transactions={transactions} />
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
+        <OverviewChartData transactions={transactions} />
+        <RecentTransactions transactions={transactions} />
+      </div>
+    </>
+  )
+}
+
+export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="space-y-1">
@@ -292,29 +320,19 @@ export default function DashboardPage() {
           A snapshot of your group's financial health.
         </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Suspense fallback={<OverviewCardsSkeleton />}>
-          {isLoading || !transactions ? (
-            <OverviewCardsSkeleton />
-          ) : (
-            <OverviewCards transactions={transactions} />
-          )}
-        </Suspense>
-      </div>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
-        {isLoading || !transactions ? (
-          <Skeleton className="lg:col-span-3 h-[400px]" />
-        ) : (
-          <OverviewChartData transactions={transactions} />
-        )}
-        <Suspense fallback={<RecentTransactionsSkeleton />}>
-          {isLoading || !transactions ? (
+      <Suspense fallback={
+         <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <OverviewCardsSkeleton />
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
+            <Skeleton className="lg:col-span-3 h-[400px]" />
             <RecentTransactionsSkeleton />
-          ) : (
-            <RecentTransactions transactions={transactions} />
-          )}
-        </Suspense>
-      </div>
+          </div>
+        </>
+      }>
+        <DashboardData />
+      </Suspense>
     </div>
   );
 }
