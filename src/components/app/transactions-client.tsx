@@ -291,6 +291,7 @@ function TransactionsTable({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[50px]">#</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Member</TableHead>
               <TableHead>Description</TableHead>
@@ -301,8 +302,9 @@ function TransactionsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.map((transaction) => (
+            {transactions.map((transaction, index) => (
               <TableRow key={transaction.id}>
+                <TableCell className="font-medium">{index + 1}</TableCell>
                 <TableCell>
                   {new Date(transaction.date).toLocaleDateString()}
                 </TableCell>
@@ -368,6 +370,7 @@ function TableSkeleton() {
             <Table>
                 <TableHeader>
                     <TableRow>
+                        <TableHead><Skeleton className="h-5 w-8" /></TableHead>
                         <TableHead><Skeleton className="h-5 w-20" /></TableHead>
                         <TableHead><Skeleton className="h-5 w-32" /></TableHead>
                         <TableHead><Skeleton className="h-5 w-48" /></TableHead>
@@ -380,6 +383,7 @@ function TableSkeleton() {
                 <TableBody>
                     {[...Array(5)].map((_, i) => (
                         <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-8" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-36" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-40" /></TableCell>
