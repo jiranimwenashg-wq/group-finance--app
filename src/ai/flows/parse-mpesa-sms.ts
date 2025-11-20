@@ -109,7 +109,7 @@ Your task is to extract structured data from the provided SMS text. Carefully an
     *   **amount**: The main transaction amount (ignore balance and transaction cost).
     *   **day**: The numerical day of the month from the date (e.g., 25 from 25/7/24).
     *   **month**: The numerical month of the year (e.g., 7 from 25/7/24).
-    *   **year**: The full four-digit year. Assume the current year if only two digits are given.
+    *   **year**: The full four-digit year. Assume the current century if only two digits are given (e.g. 24 -> 2024).
     *   **time**: The time of the transaction (e.g., 7:30 PM).
     *   **senderRecipient**: The full name of the person or business involved. Extract only the name, not the phone number.
     *   **transactionType**: "Income" if money is received, "Expense" if money is sent or used for a payment.
@@ -149,19 +149,37 @@ const parseMpesaSmsFlow = ai.defineFlow(
 
     // Reconstruct the date string from the AI's output
     // This is more reliable than asking the LLM to format the date itself.
-    const {day, month, year, time} = llmOutput;
-    // Simple time parsing
-    const [timePart, ampm] = time.split(' ');
-    let [hours, minutes] = timePart.split(':').map(Number);
+    const {day, month, time} = llmOutput;
+    let {year} = llmOutput;
 
-    if (ampm.toLowerCase() === 'pm' && hours < 12) {
+    // Handle 2-digit year
+    if (year < 100) {
+      year += 2000;
+    }
+
+    // Robust time parsing
+    const timeString = time.toLowerCase();
+    const timeRegex = /(\d{1,2}):(\d{2})/;
+    const match = timeString.match(timeRegex);
+
+    if (!match) {
+        throw new Error(`Could not parse time: ${time}`);
+    }
+
+    let [_, hours, minutes] = match.map(Number);
+
+    if (timeString.includes('pm') && hours < 12) {
       hours += 12;
     }
-    if (ampm.toLowerCase() === 'am' && hours === 12) {
+    if (timeString.includes('am') && hours === 12) {
       hours = 0; // Midnight case
     }
     
     const date = new Date(year, month - 1, day, hours, minutes);
+
+    if (isNaN(date.getTime())) {
+        throw new Error('Could not create a valid date from the parsed components.');
+    }
 
     return {
       ...llmOutput,
