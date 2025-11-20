@@ -38,28 +38,58 @@ const prompt = ai.definePrompt({
   name: 'parseMpesaSmsPrompt',
   input: {schema: ParseMpesaSmsInputSchema},
   output: {schema: ParseMpesaSmsOutputSchema},
-  prompt: `You are an expert financial assistant specializing in parsing M-Pesa SMS messages.
+  prompt: `You are an expert financial assistant specializing in parsing M-Pesa SMS messages from Kenya.
 
-  Extract the following information from the SMS message:
-  - amount: The transaction amount.
-  - date: The date and time of the transaction (ISO format).
-  - senderRecipient: The sender or recipient of the transaction.
-  - transactionType: The type of transaction (e.g., deposit, withdrawal, payment).
-  - transactionCost: The cost of the transaction, if available.
+Your task is to extract structured data from the provided SMS text. Carefully analyze the SMS examples below to understand the different formats.
 
-  Additionally, analyze the sender or recipient of the transaction. Compare this name against the provided list of members.
-  - If the name in the SMS corresponds to a name in the members list, set the 'memberId' field in the output to the matching member's ID.
-  - If no match is found, do not include the 'memberId' field in the output.
+**Examples of M-Pesa SMS formats:**
 
-  Members List:
-  {{#each members}}
-  - ID: {{id}}, Name: {{name}}
-  {{/each}}
+1.  **Receive Money:** "SDB1234567 Confirmed. You have received Ksh5,000.00 from JOHN DOE 254712345678 on 25/7/24 at 7:30 PM. New M-PESA balance is Ksh15,250.00."
+    *   **Amount**: 5000.00
+    *   **Date**: 2024-07-25T19:30:00
+    *   **Sender/Recipient**: JOHN DOE
+    *   **Transaction Type**: Income
 
-  SMS Message: {{{smsText}}}
+2.  **Send Money:** "SDB1234568 Confirmed. Ksh3,000.00 sent to JANE DOE 254722987654 on 26/7/24 at 10:15 AM. New M-PESA balance is Ksh12,250.00. Transaction cost, Ksh23.00."
+    *   **Amount**: 3000.00
+    *   **Date**: 2024-07-26T10:15:00
+    *   **Sender/Recipient**: JANE DOE
+    *   **Transaction Type**: Expense
+    *   **Transaction Cost**: 23.00
 
-  Return the output as a JSON object.
-  `,
+3.  **Pay Bill:** "SDB1234569 Confirmed. Ksh1,500.00 sent to KPLC PREPAID for account 123456-78 on 27/7/24 at 11:00 AM. New M-PESA balance is Ksh10,750.00."
+    *   **Amount**: 1500.00
+    *   **Date**: 2024-07-27T11:00:00
+    *   **Sender/Recipient**: KPLC PREPAID
+    *   **Transaction Type**: Expense
+
+**Instructions:**
+
+1.  **Extract Key Information**:
+    *   **amount**: The main transaction amount (ignore balance and transaction cost).
+    *   **date**: The date and time of the transaction. Convert it to a full ISO 8601 format (YYYY-MM-DDTHH:mm:ss). Assume the current year if not specified.
+    *   **senderRecipient**: The full name of the person or business involved in the transaction. Extract only the name, not the phone number.
+    *   **transactionType**: "Income" if money is received, "Expense" if money is sent or used for a payment.
+    *   **transactionCost**: The cost of the transaction, if available.
+
+2.  **Match Member**:
+    *   Compare the extracted **senderRecipient** name against the provided **Members List**.
+    *   If a close match is found, set the 'memberId' field in the output to the corresponding member's ID.
+    *   If no match is found, omit the 'memberId' field.
+
+**Input Data:**
+
+**Members List:**
+{{#each members}}
+- ID: {{id}}, Name: {{name}}
+{{/each}}
+
+**SMS Message to Parse:**
+\`\`\`
+{{{smsText}}}
+\`\`\`
+
+Return the final extracted data as a JSON object.`,
 });
 
 const parseMpesaSmsFlow = ai.defineFlow(
