@@ -95,17 +95,32 @@ service cloud.firestore {
     // Generic Group Member Collections (CRUD allowed for members)
     // -----------------------------
 
-    match /groups/{groupId}/{collection}/{docId}
-      where collection in [
-        "transactions",
-        "members",
-        "constitutions",
-        "savingsSchedules",
-        "loans"
-      ] {
-
+    match /groups/{groupId}/transactions/{docId} {
       allow read, list: if isGroupMember(groupId);
+      allow write: if isGroupMember(groupId)
+                   && request.resource.data.groupId == groupId;
+    }
+    
+    match /groups/{groupId}/members/{docId} {
+      allow read, list: if isGroupMember(groupId);
+      allow write: if isGroupMember(groupId)
+                   && request.resource.data.groupId == groupId;
+    }
 
+    match /groups/{groupId}/constitutions/{docId} {
+      allow read, list: if isGroupMember(groupId);
+      allow write: if isGroupMember(groupId)
+                   && request.resource.data.groupId == groupId;
+    }
+
+    match /groups/{groupId}/savingsSchedules/{docId} {
+      allow read, list: if isGroupMember(groupId);
+      allow write: if isGroupMember(groupId)
+                   && request.resource.data.groupId == groupId;
+    }
+    
+    match /groups/{groupId}/loans/{docId} {
+      allow read, list: if isGroupMember(groupId);
       allow write: if isGroupMember(groupId)
                    && request.resource.data.groupId == groupId;
     }
