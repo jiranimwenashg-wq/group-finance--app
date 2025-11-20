@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -36,12 +35,7 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'KES',
-  }).format(amount);
+import { formatCurrency } from './recent-transactions';
 
 const policySchema = z.object({
     name: z.string().min(1, 'Policy name is required'),

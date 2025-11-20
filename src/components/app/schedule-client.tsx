@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -46,6 +47,7 @@ import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } 
 import { collection, doc } from "firebase/firestore";
 import { GROUP_ID } from "@/lib/data";
 import { Skeleton } from "../ui/skeleton";
+import { formatCurrency } from "./recent-transactions";
 
 
 type ScheduleStatus = "Pending" | "Paid" | "Skipped";
@@ -235,12 +237,6 @@ export default function ScheduleClient() {
     }
   };
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "KES",
-    }).format(amount);
-    
   const isLoading = isLoadingMembers || isLoadingSchedule;
 
   return (
