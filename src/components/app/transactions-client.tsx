@@ -91,6 +91,7 @@ const transactionSchema = z.object({
     'Social Fund',
     'Operational',
     'Last Respect',
+    'Loan Repayment'
   ]),
   memberId: z.string().optional(),
 });
@@ -100,7 +101,7 @@ function AddTransactionDialog({
   onAddTransaction,
 }: {
   members: Member[];
-  onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  onAddTransaction: (transaction: Omit<Transaction, 'id' | 'groupId'>) => void;
 }) {
   const [open, setOpen] = useState(false);
   const form = useForm<z.infer<typeof transactionSchema>>({
@@ -119,10 +120,9 @@ function AddTransactionDialog({
       ? members.find((m) => m.id === values.memberId)
       : undefined;
 
-    const newTransaction: Omit<Transaction, 'id'> = {
+    const newTransaction: Omit<Transaction, 'id' | 'groupId'> = {
       ...values,
       memberName: member?.name,
-      groupId: GROUP_ID,
     };
     onAddTransaction(newTransaction);
     form.reset({
@@ -269,6 +269,7 @@ function AddTransactionDialog({
                         <SelectItem value="Social Fund">Social Fund</SelectItem>
                         <SelectItem value="Operational">Operational</SelectItem>
                         <SelectItem value="Last Respect">Last Respect</SelectItem>
+                        <SelectItem value="Loan Repayment">Loan Repayment</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -547,10 +548,10 @@ export default function TransactionsClient() {
   }, [selectedTransaction, editForm]);
 
 
-  const handleAddTransaction = (transaction: Omit<Transaction, 'id'>) => {
+  const handleAddTransaction = (transaction: Omit<Transaction, 'id' | 'groupId'>) => {
     if (!firestore) return;
     const transactionsRef = collection(firestore, 'groups', GROUP_ID, 'transactions');
-    addDocumentNonBlocking(transactionsRef, transaction);
+    addDocumentNonBlocking(transactionsRef, { ...transaction, groupId: GROUP_ID });
     toast({
       title: 'Transaction Added',
       description: `A new transaction for ${formatCurrency(transaction.amount)} has been recorded.`,
@@ -637,6 +638,10 @@ export default function TransactionsClient() {
     return filteredTransactions.filter((t) => t.category === 'Last Respect');
   }, [filteredTransactions]);
 
+  const loanRepaymentTransactions = useMemo(() => {
+    return filteredTransactions.filter((t) => t.category === 'Loan Repayment');
+  }, [filteredTransactions]);
+
   const handleParseSms = async () => {
     if (!smsText.trim()) {
       toast({
@@ -674,7 +679,7 @@ export default function TransactionsClient() {
 
     const member = parsedTransaction.memberId ? members?.find(m => m.id === parsedTransaction.memberId) : undefined;
     
-    const newTransaction: Omit<Transaction, 'id'> = {
+    const newTransaction: Omit<Transaction, 'id' | 'groupId'> = {
         date: new Date(parsedTransaction.date),
         description: `M-Pesa payment from ${parsedTransaction.senderRecipient}`,
         amount: parsedTransaction.amount,
@@ -682,11 +687,10 @@ export default function TransactionsClient() {
         category: 'Contribution',
         memberId: parsedTransaction.memberId,
         memberName: member?.name,
-        groupId: GROUP_ID
     };
 
     const transactionsRef = collection(firestore, 'groups', GROUP_ID, 'transactions');
-    addDocumentNonBlocking(transactionsRef, newTransaction);
+    addDocumentNonBlocking(transactionsRef, { ...newTransaction, groupId: GROUP_ID });
     toast({
       title: 'Transaction Added',
       description: `A new transaction for ${formatCurrency(newTransaction.amount)} has been recorded.`,
@@ -797,7 +801,8 @@ export default function TransactionsClient() {
               | 'Project'
               | 'Social Fund'
               | 'Operational'
-              | 'Last Respect',
+              | 'Last Respect'
+              | 'Loan Repayment',
             memberId: member?.id,
             memberName: member?.name,
             groupId: GROUP_ID,
@@ -953,9 +958,10 @@ export default function TransactionsClient() {
                     {isLoading ? <TableSkeleton /> : (
                     <Tabs defaultValue="all">
                         <TabsList>
-                        <TabsTrigger value="all">All Transactions</TabsTrigger>
-                        <TabsTrigger value="contributions">Contributions</TabsTrigger>
-                        <TabsTrigger value="last_respect">Last Respect</TabsTrigger>
+                          <TabsTrigger value="all">All Transactions</TabsTrigger>
+                          <TabsTrigger value="contributions">Contributions</TabsTrigger>
+                          <TabsTrigger value="last_respect">Last Respect</TabsTrigger>
+                          <TabsTrigger value="loan_repayment">Loan Repayments</TabsTrigger>
                         </TabsList>
                         <TabsContent value="all" className="mt-4">
                         <TransactionsTable transactions={filteredTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
@@ -965,6 +971,9 @@ export default function TransactionsClient() {
                         </TabsContent>
                         <TabsContent value="last_respect" className="mt-4">
                         <TransactionsTable transactions={lastRespectTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
+                        </TabsContent>
+                        <TabsContent value="loan_repayment" className="mt-4">
+                          <TransactionsTable transactions={loanRepaymentTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
                         </TabsContent>
                     </Tabs>
                 )}
@@ -1092,6 +1101,7 @@ export default function TransactionsClient() {
                         <SelectItem value="Social Fund">Social Fund</SelectItem>
                         <SelectItem value="Operational">Operational</SelectItem>
                         <SelectItem value="Last Respect">Last Respect</SelectItem>
+                        <SelectItem value="Loan Repayment">Loan Repayment</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -1143,3 +1153,5 @@ export default function TransactionsClient() {
     </div>
   );
 }
+
+    

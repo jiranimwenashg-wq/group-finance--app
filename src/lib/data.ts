@@ -40,6 +40,7 @@ export type Group = {
   id: string;
   name: string;
   currency: string;
+  ownerId: string;
 };
 
 export type Loan = {
@@ -56,4 +57,6 @@ export type Loan = {
 
 
 // Hardcoded Group ID for the entire application
-export const GROUP_ID = process.env.NEXT_PUBLIC_GROUP_ID!;
+export const GROUP_ID = "primary-group";
+
+    
