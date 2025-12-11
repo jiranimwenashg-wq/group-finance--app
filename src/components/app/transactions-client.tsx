@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import Papa from 'papaparse';
 import {
   Table,
@@ -534,20 +534,6 @@ export default function TransactionsClient() {
     resolver: zodResolver(transactionSchema),
   });
 
-  useEffect(() => {
-    if (selectedTransaction) {
-      editForm.reset({
-        description: selectedTransaction.description,
-        amount: selectedTransaction.amount,
-        date: new Date(selectedTransaction.date),
-        type: selectedTransaction.type,
-        category: selectedTransaction.category,
-        memberId: selectedTransaction.memberId,
-      });
-    }
-  }, [selectedTransaction, editForm]);
-
-
   const handleAddTransaction = (transaction: Omit<Transaction, 'id' | 'groupId'>) => {
     if (!firestore) return;
     const transactionsRef = collection(firestore, 'groups', GROUP_ID, 'transactions');
@@ -565,6 +551,7 @@ export default function TransactionsClient() {
     const updatedTransaction = {
       ...selectedTransaction,
       ...values,
+      date: values.date,
       memberName: member?.name,
     };
     
@@ -596,6 +583,14 @@ export default function TransactionsClient() {
 
   const openEditDialog = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
+    editForm.reset({
+        description: transaction.description,
+        amount: transaction.amount,
+        date: new Date(transaction.date),
+        type: transaction.type,
+        category: transaction.category,
+        memberId: transaction.memberId,
+      });
     setIsEditOpen(true);
   };
   
@@ -1037,7 +1032,7 @@ export default function TransactionsClient() {
                             )}
                           >
                             {field.value ? (
-                              format(field.value, 'PPP')
+                              format(new Date(field.value), 'PPP')
                             ) : (
                               <span>Pick a date</span>
                             )}
@@ -1153,9 +1148,3 @@ export default function TransactionsClient() {
     </div>
   );
 }
-
-    
-
-    
-
-    
