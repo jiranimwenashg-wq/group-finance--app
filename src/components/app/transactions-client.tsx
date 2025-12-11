@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
@@ -1031,8 +1032,8 @@ export default function TransactionsClient() {
                               !field.value && 'text-muted-foreground'
                             )}
                           >
-                            {field.value ? (
-                              format(new Date(field.value), 'PPP')
+                            {field.value instanceof Date && !isNaN(field.value.getTime()) ? (
+                              format(field.value, 'PPP')
                             ) : (
                               <span>Pick a date</span>
                             )}
