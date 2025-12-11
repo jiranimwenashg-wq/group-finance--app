@@ -43,7 +43,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Input } from "../ui/input";
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { GROUP_ID } from "@/lib/data";
 import { Skeleton } from "../ui/skeleton";
@@ -150,7 +150,7 @@ export default function ScheduleClient() {
     // First, delete old schedule entries if any
     schedule?.forEach(item => {
         const docRef = doc(scheduleRef, item.id);
-        setDocumentNonBlocking(docRef, {}, { merge: true }); // Using set with merge to clear
+        deleteDocumentNonBlocking(docRef);
     });
 
     // Create new schedule
@@ -167,7 +167,8 @@ export default function ScheduleClient() {
         payoutAmount,
         groupId: GROUP_ID,
       };
-      setDocumentNonBlocking(doc(scheduleRef), newItem, { merge: false });
+      const newDocRef = doc(scheduleRef); // Create a new doc reference with a generated ID
+      setDocumentNonBlocking(newDocRef, newItem, { merge: false });
     });
 
     toast({ title: "Schedule Regenerated", description: "A new savings schedule has been created."})
@@ -205,7 +206,7 @@ export default function ScheduleClient() {
   const confirmDelete = () => {
     if (!selectedItem || !firestore || !GROUP_ID) return;
     const docRef = doc(firestore, 'groups', GROUP_ID, 'savingsSchedules', selectedItem.id);
-    setDocumentNonBlocking(docRef, {}, { merge: true }); // Empty set to delete
+    deleteDocumentNonBlocking(docRef);
     toast({ title: "Payout Deleted", description: `The payout for ${selectedItem.memberName} has been removed.` });
     setIsDeleteDialogOpen(false);
     setSelectedItem(null);
