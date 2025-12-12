@@ -20,12 +20,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { Input } from '../ui/input';
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc, query, writeBatch } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
@@ -33,9 +33,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { PlusCircle } from 'lucide-react';
+import { MoreHorizontal, Pencil, PlusCircle, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from './recent-transactions';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 
 const policySchema = z.object({
     name: z.string().min(1, 'Policy name is required'),
@@ -79,6 +81,10 @@ function AddPolicyDialog() {
     const { toast } = useToast();
     const form = useForm<z.infer<typeof policySchema>>({
         resolver: zodResolver(policySchema),
+        defaultValues: {
+            name: '',
+            premiumAmount: 0,
+        }
     });
 
     const onSubmit = (values: z.infer<typeof policySchema>) => {
@@ -94,7 +100,7 @@ function AddPolicyDialog() {
             description: `The "${values.name}" policy has been successfully created.`,
         });
 
-        form.reset();
+        form.reset({ name: '', premiumAmount: 0 });
         setOpen(false);
     };
     
@@ -156,6 +162,10 @@ export default function InsuranceClient() {
   const [filter, setFilter] = useState('');
   const firestore = useFirestore();
 
+  const [isEditPolicyOpen, setIsEditPolicyOpen] = useState(false);
+  const [isDeletePolicyOpen, setIsDeletePolicyOpen] = useState(false);
+  const { toast } = useToast();
+
   const policiesPath = `groups/${GROUP_ID}/insurancePolicies`;
   const policiesQuery = useMemoFirebase(() => {
     if (!firestore || !GROUP_ID) return null;
@@ -195,12 +205,24 @@ export default function InsuranceClient() {
       return policies.find(p => p.id === selectedPolicyId);
   }, [selectedPolicyId, policies]);
 
+  const editPolicyForm = useForm<z.infer<typeof policySchema>>({
+    resolver: zodResolver(policySchema),
+  });
 
   useEffect(() => {
     if (policies && policies.length > 0 && !selectedPolicyId) {
       setSelectedPolicyId(policies[0].id);
     }
   }, [policies, selectedPolicyId]);
+
+  useEffect(() => {
+    if (selectedPolicy) {
+        editPolicyForm.reset({
+            name: selectedPolicy.name,
+            premiumAmount: selectedPolicy.premiumAmount
+        });
+    }
+  }, [selectedPolicy, editPolicyForm]);
 
   const months = useMemo(
     () =>
@@ -268,6 +290,39 @@ export default function InsuranceClient() {
     });
   };
 
+  const handleEditPolicySubmit = (values: z.infer<typeof policySchema>) => {
+    if (!firestore || !selectedPolicyId) return;
+    const policyRef = doc(firestore, policiesPath, selectedPolicyId);
+    setDocumentNonBlocking(policyRef, values, { merge: true });
+    toast({ title: 'Policy Updated', description: 'The policy has been successfully updated.' });
+    setIsEditPolicyOpen(false);
+  }
+
+  const handleDeletePolicy = async () => {
+    if (!firestore || !selectedPolicyId || !payments) return;
+    
+    // Create a batch write
+    const batch = writeBatch(firestore);
+
+    // Delete all payment documents in the subcollection
+    payments.forEach(payment => {
+        const paymentRef = doc(firestore, paymentsPath, payment.id);
+        batch.delete(paymentRef);
+    });
+
+    // Delete the policy document itself
+    const policyRef = doc(firestore, policiesPath, selectedPolicyId);
+    batch.delete(policyRef);
+
+    // Commit the batch
+    await batch.commit();
+
+    toast({ variant: 'destructive', title: 'Policy Deleted', description: 'The policy and all its payments have been deleted.' });
+    setSelectedPolicyId(undefined); // Reset selection
+    setIsDeletePolicyOpen(false);
+};
+
+
   const monthlyStats = useMemo(() => {
     if (!selectedPolicy) return { total: 0, collected: 0, outstanding: 0};
     const allActiveMembers = members?.filter(m => m.status === 'Active') || [];
@@ -328,6 +383,21 @@ export default function InsuranceClient() {
               ))}
             </SelectContent>
           </Select>
+           {selectedPolicy && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon"><MoreHorizontal className="size-4" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setIsEditPolicyOpen(true)}>
+                  <Pencil className="mr-2 size-4" /> Edit Policy
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsDeletePolicyOpen(true)} className="text-destructive">
+                  <Trash2 className="mr-2 size-4" /> Delete Policy
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <Select
             value={String(selectedYear)}
             onValueChange={val => setSelectedYear(Number(val))}
@@ -492,8 +562,8 @@ export default function InsuranceClient() {
                         })}
                          <TableCell className="text-right">
                              <div className="flex items-center gap-2 justify-end">
-                                <span>{annualStats.paid}/{annualStats.total || 1}</span>
-                                <Progress value={(annualStats.paid / (annualStats.total || 1)) * 100} className="w-16 h-2" />
+                                <span>{annualStats.paid}/{annualStats.total || 12}</span>
+                                <Progress value={(annualStats.paid / (annualStats.total || 12)) * 100} className="w-16 h-2" />
                              </div>
                          </TableCell>
                         </TableRow>
@@ -505,6 +575,64 @@ export default function InsuranceClient() {
             )}
           </CardContent>
       </Card>
+      
+       <Dialog open={isEditPolicyOpen} onOpenChange={setIsEditPolicyOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit {selectedPolicy?.name}</DialogTitle>
+                    <DialogDescription>Update the policy details below.</DialogDescription>
+                </DialogHeader>
+                <Form {...editPolicyForm}>
+                    <form onSubmit={editPolicyForm.handleSubmit(handleEditPolicySubmit)} className="space-y-4">
+                        <FormField
+                            control={editPolicyForm.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Policy Name</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={editPolicyForm.control}
+                            name="premiumAmount"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Premium Amount (Monthly)</FormLabel>
+                                    <FormControl>
+                                        <Input type="number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="submit">Save Changes</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+        
+        <AlertDialog open={isDeletePolicyOpen} onOpenChange={setIsDeletePolicyOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will permanently delete the &quot;{selectedPolicy?.name}&quot; policy and all its associated payment records. This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeletePolicy} className="bg-destructive hover:bg-destructive/90">Delete Policy</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
     </div>
   );
 }
