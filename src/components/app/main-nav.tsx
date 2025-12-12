@@ -11,7 +11,9 @@ import {
   FileCheck,
   Calendar,
   HelpCircle,
-  Landmark
+  Landmark,
+  PiggyBank,
+  HandCoins
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
