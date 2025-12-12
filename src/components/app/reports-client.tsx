@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import type { Member, Transaction, InsurancePayment, InsurancePolicy } from '@/lib/data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { placeholderImages } from '@/lib/placeholder-images';
+import { placeholderImages } from '@/lib/placeholder-images.json';
 import { generateMemberReport } from '@/ai/flows/generate-member-report';
 import { Loader2, User } from 'lucide-react';
 import { Badge } from '../ui/badge';
@@ -28,52 +28,10 @@ function MemberReportCard({ member, transactions, policies }: MemberReportCardPr
   const userAvatar = placeholderImages.find((p) => p.id === 'avatar-1');
   const firestore = useFirestore();
 
-  // Fetch all payments for all policies. This is not ideal for performance but avoids the hook error.
-  // A better solution would involve a collectionGroup query if rules allow, or moving this logic server-side.
-  const allPaymentsPaths = useMemoFirebase(() => {
-    if (!firestore || !policies) return [];
-    return policies.map(p => ({
-        path: `groups/${GROUP_ID}/insurancePolicies/${p.id}/payments`, 
-        policyId: p.id
-    }));
-  }, [firestore, policies]);
-
-  // This is still not ideal, but we can call useCollection statically for each path.
-  // The original error was because the number of policies could change.
-  // Let's fetch all payments in one go for the whole app.
   const memberTransactions = useMemo(
     () => transactions.filter((t) => t.memberId === member.id),
     [transactions, member.id]
   );
-
-  // This is where we need to get the insurance data.
-  // We'll fetch it inside the card.
-  const paymentsQueries = useMemoFirebase(() => {
-    if (!firestore || !policies || !GROUP_ID) return [];
-    return policies.map(policy => {
-      const path = `groups/${GROUP_ID}/insurancePolicies/${policy.id}/payments`;
-      return {
-        query: query(collection(firestore, path)),
-        path,
-        policyId: policy.id
-      };
-    });
-  }, [firestore, policies]);
-
-  // This part is tricky. The number of hooks must be constant.
-  // A workaround is to have a hook that fetches from multiple queries, but that's complex.
-  // For now, let's fetch payments within the card for the specific member.
-  const memberPaymentsQuery = useMemoFirebase(() => {
-      if (!firestore) return null;
-      // This is not a valid query. We need to query each sub-collection.
-      // The previous attempt did this in a loop, which is wrong.
-      // Let's fetch ALL payments and filter client-side. This is inefficient but will fix the hook error.
-      // A collection group query would be best but requires index and rule changes.
-      
-      // Let's re-implement useAllInsurancePayments correctly.
-      return null;
-  }, [firestore]);
-
 
   const getReport = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -104,13 +62,16 @@ function MemberReportCard({ member, transactions, policies }: MemberReportCardPr
 
       const input = {
         memberName: member.name,
-        transactions: memberTransactions.map(t => ({
-            date: new Date(t.date).toISOString().split('T')[0],
-            description: t.description,
-            amount: t.amount,
-            type: t.type,
-            category: t.category,
-        })),
+        transactions: memberTransactions.map(t => {
+            const transactionDate = t.date instanceof Date ? t.date : (t.date as any).toDate();
+            return {
+                date: transactionDate.toISOString().split('T')[0],
+                description: t.description,
+                amount: t.amount,
+                type: t.type,
+                category: t.category,
+            }
+        }),
         insurancePayments: memberInsurance,
       };
       const result = await generateMemberReport(input);
