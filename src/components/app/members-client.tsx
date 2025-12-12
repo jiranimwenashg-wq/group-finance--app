@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import Papa from 'papaparse';
 import {
   Table,
@@ -11,9 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { Member } from '@/lib/data';
+import type { Loan, Member, Transaction } from '@/lib/data';
 import { Button } from '../ui/button';
-import { Download, PlusCircle, Upload } from 'lucide-react';
+import { Download, PlusCircle, Upload, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
 import { Badge } from '../ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
@@ -36,6 +46,13 @@ import {
   FormLabel,
   FormMessage,
 } from '../ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '../ui/input';
 import {
   Card,
@@ -44,14 +61,19 @@ import {
   CardDescription,
   CardContent,
 } from '../ui/card';
-import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../ui/dropdown-menu';
 
 const memberSchema = z.object({
   name: z.string().min(1, { message: 'Name is required' }),
   phone: z.string().min(1, { message: 'Phone number is required' }),
+});
+
+const editMemberSchema = memberSchema.extend({
+    status: z.enum(['Active', 'Inactive']),
 });
 
 function AddMemberDialog({
@@ -140,6 +162,7 @@ function TableSkeleton() {
                         <TableHead><Skeleton className="h-5 w-32" /></TableHead>
                         <TableHead><Skeleton className="h-5 w-24" /></TableHead>
                         <TableHead><Skeleton className="h-5 w-20" /></TableHead>
+                        <TableHead className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -149,6 +172,7 @@ function TableSkeleton() {
                             <TableCell><Skeleton className="h-5 w-36" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                            <TableCell><div className="flex justify-end"><Skeleton className="h-8 w-8" /></div></TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -159,10 +183,16 @@ function TableSkeleton() {
 
 export default function MembersClient() {
   const [filter, setFilter] = useState('');
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
+
   const membersPath = `groups/${GROUP_ID}/members`;
+  const transactionsPath = `groups/${GROUP_ID}/transactions`;
+  const loansPath = `groups/${GROUP_ID}/loans`;
 
   const membersQuery = useMemoFirebase(() => {
     if (!firestore || !GROUP_ID) return null;
@@ -171,6 +201,19 @@ export default function MembersClient() {
 
   const { data: members, isLoading } = useCollection<Member>(membersQuery, membersPath);
 
+  const form = useForm<z.infer<typeof editMemberSchema>>({
+    resolver: zodResolver(editMemberSchema),
+  });
+
+  useEffect(() => {
+    if (selectedMember) {
+      form.reset({
+        name: selectedMember.name,
+        phone: selectedMember.phone,
+        status: selectedMember.status,
+      });
+    }
+  }, [selectedMember, form]);
 
   const filteredMembers = useMemo(() => {
     if (!members) return [];
@@ -200,6 +243,68 @@ export default function MembersClient() {
       description: `${newMember.name} has been successfully added.`,
     });
   };
+
+  const handleEditClick = (member: Member) => {
+    setSelectedMember(member);
+    setIsEditOpen(true);
+  };
+  
+  const handleDeleteClick = (member: Member) => {
+    setSelectedMember(member);
+    setIsDeleteOpen(true);
+  };
+
+  const handleEditSubmit = async (values: z.infer<typeof editMemberSchema>) => {
+    if (!firestore || !selectedMember) return;
+    
+    const memberRef = doc(firestore, membersPath, selectedMember.id);
+    const updatedMemberData = { ...selectedMember, ...values };
+    
+    const batch = writeBatch(firestore);
+    
+    // Update the member document itself
+    batch.set(memberRef, updatedMemberData);
+
+    // If the name changed, update denormalized memberName in other collections
+    if (selectedMember.name !== values.name) {
+        // Update transactions
+        const transactionsQuery = query(collection(firestore, transactionsPath), where('memberId', '==', selectedMember.id));
+        const transactionsSnapshot = await getDocs(transactionsQuery);
+        transactionsSnapshot.forEach(doc => {
+            batch.update(doc.ref, { memberName: values.name });
+        });
+
+        // Update loans
+        const loansQuery = query(collection(firestore, loansPath), where('memberId', '==', selectedMember.id));
+        const loansSnapshot = await getDocs(loansQuery);
+        loansSnapshot.forEach(doc => {
+            batch.update(doc.ref, { memberName: values.name });
+        });
+    }
+    
+    await batch.commit();
+
+    toast({
+      title: 'Member Updated',
+      description: `${values.name}'s details have been updated.`,
+    });
+    
+    setIsEditOpen(false);
+    setSelectedMember(null);
+  };
+  
+  const confirmDelete = () => {
+    if (!firestore || !selectedMember) return;
+    const memberRef = doc(firestore, membersPath, selectedMember.id);
+    deleteDocumentNonBlocking(memberRef);
+    toast({
+      variant: 'destructive',
+      title: 'Member Deleted',
+      description: `${selectedMember.name} has been removed.`,
+    });
+    setIsDeleteOpen(false);
+    setSelectedMember(null);
+  }
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -335,6 +440,7 @@ export default function MembersClient() {
                     <TableHead>Contact</TableHead>
                     <TableHead>Join Date</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -363,6 +469,25 @@ export default function MembersClient() {
                             {member.status}
                         </Badge>
                         </TableCell>
+                        <TableCell className="text-right">
+                           <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleEditClick(member)}>
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleDeleteClick(member)} className="text-destructive">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </TableCell>
                     </TableRow>
                     ))}
                 </TableBody>
@@ -371,6 +496,93 @@ export default function MembersClient() {
           )}
         </CardContent>
       </Card>
+      
+       {/* Edit Dialog */}
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <DialogContent>
+                <DialogHeader>
+                <DialogTitle>Edit Member</DialogTitle>
+                <DialogDescription>
+                    Update the details for {selectedMember?.name}.
+                </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleEditSubmit)} className="space-y-4">
+                    <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl>
+                            <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Phone</FormLabel>
+                        <FormControl>
+                            <Input type="tel" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Status</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                <SelectItem value="Active">Active</SelectItem>
+                                <SelectItem value="Inactive">Inactive</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    <DialogFooter>
+                    <Button type="submit">Save Changes</Button>
+                    </DialogFooter>
+                </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+        
+        {/* Delete Dialog */}
+        <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete {selectedMember?.name} and all associated data.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+                        Delete Member
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
     </div>
   );
 }
+
+    
