@@ -145,9 +145,9 @@ function MemberReportCard({ member, transactions, policies }: MemberReportCardPr
         )}
         <div className="flex-1">
           <CardTitle>{member.name}</CardTitle>
-          <CardDescription>
+          <div className="text-sm text-muted-foreground">
             <Badge variant={member.status === 'Active' ? 'default' : 'outline'} className={member.status === 'Active' ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" : ""}>{member.status}</Badge>
-          </CardDescription>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
