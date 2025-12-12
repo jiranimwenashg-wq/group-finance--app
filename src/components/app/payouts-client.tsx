@@ -57,6 +57,7 @@ import { formatCurrency } from './recent-transactions';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
 import { Textarea } from '../ui/textarea';
+import { Calendar } from '../ui/calendar';
 
 const payoutSchema = z.object({
   description: z.string().min(1, 'Description is required'),
