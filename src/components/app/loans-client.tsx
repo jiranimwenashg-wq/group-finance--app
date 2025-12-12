@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -50,19 +50,22 @@ import {
   useMemoFirebase,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
+  setDocumentNonBlocking,
+  deleteDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
-import { Banknote, MoreHorizontal, PlusCircle, HandCoins, Calendar as CalendarIcon } from 'lucide-react';
+import { Banknote, MoreHorizontal, PlusCircle, HandCoins, Calendar as CalendarIcon, Trash2, Pencil } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { formatCurrency } from './recent-transactions';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { Textarea } from '../ui/textarea';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 
 const loanSchema = z.object({
   memberId: z.string().min(1, 'Member is required'),
@@ -111,6 +114,8 @@ function LoansTableSkeleton() {
 export default function LoansClient() {
   const [isIssueLoanOpen, setIsIssueLoanOpen] = useState(false);
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
+  const [isEditLoanOpen, setIsEditLoanOpen] = useState(false);
+  const [isDeleteLoanOpen, setIsDeleteLoanOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const [filter, setFilter] = useState('');
   const { toast } = useToast();
@@ -138,10 +143,27 @@ export default function LoansClient() {
     defaultValues: { memberId: '', principal: 0, interestRate: 0, issueDate: new Date(), reason: '' },
   });
 
+  const editLoanForm = useForm<z.infer<typeof loanSchema>>({
+    resolver: zodResolver(loanSchema),
+    defaultValues: { memberId: '', principal: 0, interestRate: 0, issueDate: new Date(), reason: '' },
+  });
+
   const recordPaymentForm = useForm<z.infer<typeof paymentSchema>>({
     resolver: zodResolver(paymentSchema),
     defaultValues: { amount: 0, paymentDate: new Date() },
   });
+
+   useEffect(() => {
+    if (selectedLoan && isEditLoanOpen) {
+      editLoanForm.reset({
+        memberId: selectedLoan.memberId,
+        principal: selectedLoan.principal,
+        interestRate: selectedLoan.interestRate,
+        issueDate: new Date(selectedLoan.issueDate),
+        reason: selectedLoan.reason,
+      });
+    }
+  }, [selectedLoan, isEditLoanOpen, editLoanForm]);
 
   const handleIssueLoan = (values: z.infer<typeof loanSchema>) => {
     if (!firestore || !GROUP_ID || !members) return;
@@ -190,11 +212,68 @@ export default function LoansClient() {
     issueLoanForm.reset({ memberId: '', principal: 0, interestRate: 0, issueDate: new Date(), reason: '' });
     setIsIssueLoanOpen(false);
   };
+  
+  const handleEditLoan = (values: z.infer<typeof loanSchema>) => {
+    if (!firestore || !GROUP_ID || !members || !selectedLoan) return;
+
+    const member = members.find(m => m.id === values.memberId);
+    if (!member) return;
+    
+    const principal = values.principal;
+    const interest = principal * (values.interestRate / 100);
+    const balance = principal + interest;
+
+    const updatedLoan: Loan = {
+        ...selectedLoan,
+        memberId: values.memberId,
+        memberName: member.name,
+        principal: principal,
+        interestRate: values.interestRate,
+        balance: balance, // Recalculate balance based on new principal/interest
+        issueDate: values.issueDate,
+        reason: values.reason,
+    };
+    
+    const loanRef = doc(firestore, loansPath, selectedLoan.id);
+    setDocumentNonBlocking(loanRef, updatedLoan, { merge: true });
+
+    toast({
+      title: 'Loan Updated',
+      description: `The loan for ${member.name} has been updated.`,
+    });
+    
+    editLoanForm.reset();
+    setIsEditLoanOpen(false);
+    setSelectedLoan(null);
+  };
 
   const openRecordPaymentDialog = (loan: Loan) => {
     setSelectedLoan(loan);
     setIsRecordPaymentOpen(true);
   }
+
+  const openEditLoanDialog = (loan: Loan) => {
+    setSelectedLoan(loan);
+    setIsEditLoanOpen(true);
+  }
+
+  const openDeleteLoanDialog = (loan: Loan) => {
+    setSelectedLoan(loan);
+    setIsDeleteLoanOpen(true);
+  };
+  
+  const confirmDeleteLoan = () => {
+    if (!firestore || !GROUP_ID || !selectedLoan) return;
+    const loanRef = doc(firestore, loansPath, selectedLoan.id);
+    deleteDocumentNonBlocking(loanRef);
+    toast({
+        variant: 'destructive',
+        title: 'Loan Deleted',
+        description: `The loan for ${selectedLoan.memberName} has been deleted.`,
+    });
+    setIsDeleteLoanOpen(false);
+    setSelectedLoan(null);
+  };
 
   const handleRecordPayment = (values: z.infer<typeof paymentSchema>) => {
     if(!firestore || !GROUP_ID || !selectedLoan) return;
@@ -438,6 +517,110 @@ export default function LoansClient() {
             </DialogContent>
         </Dialog>
 
+        <Dialog open={isEditLoanOpen} onOpenChange={setIsEditLoanOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit Loan for {selectedLoan?.memberName}</DialogTitle>
+                    <DialogDescription>
+                        Update the loan details below.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...editLoanForm}>
+                    <form onSubmit={editLoanForm.handleSubmit(handleEditLoan)} className="space-y-4">
+                         <FormField
+                            control={editLoanForm.control}
+                            name="issueDate"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Issue Date</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "w-[240px] pl-3 text-left font-normal",
+                                                !field.value && "text-muted-foreground"
+                                            )}
+                                            >
+                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            initialFocus
+                                        />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={editLoanForm.control}
+                            name="principal"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Principal Amount</FormLabel>
+                                    <FormControl><Input type="number" placeholder="e.g. 10000" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={editLoanForm.control}
+                            name="interestRate"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Interest Rate (%)</FormLabel>
+                                    <FormControl><Input type="number" placeholder="e.g. 10 for 10%" {...field} /></FormControl>
+                                    <FormDescription>Enter 0 for an interest-free advance.</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={editLoanForm.control}
+                            name="reason"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Reason</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="e.g., School fees" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="submit">Save Changes</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+        
+      <AlertDialog open={isDeleteLoanOpen} onOpenChange={setIsDeleteLoanOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the loan for <span className="font-semibold">{selectedLoan?.memberName}</span>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteLoan} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       <Card>
         <CardHeader>
           <CardTitle>All Loans</CardTitle>
@@ -488,6 +671,15 @@ export default function LoansClient() {
                                             <DropdownMenuItem onClick={() => openRecordPaymentDialog(loan)}>
                                                 <HandCoins className="mr-2 h-4 w-4" />
                                                 Record Payment
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={() => openEditLoanDialog(loan)}>
+                                                <Pencil className="mr-2 h-4 w-4" />
+                                                Edit Loan
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => openDeleteLoanDialog(loan)} className="text-destructive">
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Delete Loan
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
