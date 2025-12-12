@@ -112,7 +112,10 @@
           "description": "Category of the transaction (e.g., income, expense).",
            "enum": [
             "Contribution",
-            "Late Fee",
+            "Fines",
+            "New Member Fee",
+            "Interest Income",
+            "Dividends",
             "Project",
             "Social Fund",
             "Operational",

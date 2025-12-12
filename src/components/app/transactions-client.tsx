@@ -87,7 +87,10 @@ const transactionSchema = z.object({
   type: z.enum(['Income', 'Expense']),
   category: z.enum([
     'Contribution',
-    'Late Fee',
+    'Fines',
+    'New Member Fee',
+    'Interest Income',
+    'Dividends',
     'Project',
     'Social Fund',
     'Operational',
@@ -266,7 +269,10 @@ function AddTransactionDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="Contribution">Contribution</SelectItem>
-                        <SelectItem value="Late Fee">Late Fee</SelectItem>
+                        <SelectItem value="Fines">Fines</SelectItem>
+                        <SelectItem value="New Member Fee">New Member Fee</SelectItem>
+                        <SelectItem value="Interest Income">Interest Income</SelectItem>
+                        <SelectItem value="Dividends">Dividends</SelectItem>
                         <SelectItem value="Project">Project</SelectItem>
                         <SelectItem value="Social Fund">Social Fund</SelectItem>
                         <SelectItem value="Operational">Operational</SelectItem>
@@ -800,7 +806,10 @@ export default function TransactionsClient() {
             type: row.type as 'Income' | 'Expense',
             category: row.category as
               | 'Contribution'
-              | 'Late Fee'
+              | 'Fines'
+              | 'New Member Fee'
+              | 'Interest Income'
+              | 'Dividends'
               | 'Project'
               | 'Social Fund'
               | 'Operational'
@@ -1100,7 +1109,10 @@ export default function TransactionsClient() {
                       <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="Contribution">Contribution</SelectItem>
-                        <SelectItem value="Late Fee">Late Fee</SelectItem>
+                        <SelectItem value="Fines">Fines</SelectItem>
+                        <SelectItem value="New Member Fee">New Member Fee</SelectItem>
+                        <SelectItem value="Interest Income">Interest Income</SelectItem>
+                        <SelectItem value="Dividends">Dividends</SelectItem>
                         <SelectItem value="Project">Project</SelectItem>
                         <SelectItem value="Social Fund">Social Fund</SelectItem>
                         <SelectItem value="Operational">Operational</SelectItem>

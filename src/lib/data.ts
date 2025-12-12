@@ -14,7 +14,7 @@ export type Transaction = {
   description: string;
   amount: number;
   type: 'Income' | 'Expense';
-  category: 'Contribution' | 'Late Fee' | 'Project' | 'Social Fund' | 'Operational' | 'Last Respect' | 'Loan Repayment' | 'Payout';
+  category: 'Contribution' | 'Fines' | 'New Member Fee' | 'Interest Income' | 'Dividends' | 'Project' | 'Social Fund' | 'Operational' | 'Last Respect' | 'Loan Repayment' | 'Payout';
   memberId?: string;
   memberName?: string;
   groupId: string;
