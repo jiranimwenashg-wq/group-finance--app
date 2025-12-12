@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { ThemeToggle } from '@/components/app/theme-toggle';
@@ -59,8 +60,8 @@ function GroupProfileCard() {
   const form = useForm<z.infer<typeof groupProfileSchema>>({
     resolver: zodResolver(groupProfileSchema),
     defaultValues: {
-      name: '',
-      currency: 'KES',
+      name: group?.name || '',
+      currency: group?.currency || 'KES',
     },
   });
 
