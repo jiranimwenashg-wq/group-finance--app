@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../ui/dialog';
-import { PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Card,
@@ -48,8 +48,10 @@ import {
   useCollection,
   useMemoFirebase,
   addDocumentNonBlocking,
+  setDocumentNonBlocking,
+  deleteDocumentNonBlocking,
 } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
 import { format } from 'date-fns';
@@ -58,6 +60,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
 import { Textarea } from '../ui/textarea';
 import { Calendar } from '../ui/calendar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 
 const payoutSchema = z.object({
   description: z.string().min(1, 'Description is required'),
@@ -65,7 +69,15 @@ const payoutSchema = z.object({
   date: z.date({ required_error: 'A date is required.' }),
 });
 
-function PayoutsTable({ transactions }: { transactions: Transaction[] }) {
+function PayoutsTable({ 
+    transactions,
+    onEdit,
+    onDelete,
+}: { 
+    transactions: Transaction[],
+    onEdit: (transaction: Transaction) => void;
+    onDelete: (transaction: Transaction) => void;
+}) {
   return (
     <div className="rounded-lg border shadow-sm">
       <div className="relative w-full overflow-auto">
@@ -76,6 +88,7 @@ function PayoutsTable({ transactions }: { transactions: Transaction[] }) {
               <TableHead>Description</TableHead>
               <TableHead>Category</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-[50px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -94,6 +107,23 @@ function PayoutsTable({ transactions }: { transactions: Transaction[] }) {
                   className={`text-right font-semibold text-red-600`}
                 >
                   {formatCurrency(transaction.amount)}
+                </TableCell>
+                <TableCell className="text-right">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => onEdit(transaction)}>
+                                <Pencil className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onDelete(transaction)} className="text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}
@@ -114,6 +144,7 @@ function TableSkeleton() {
                         <TableHead><Skeleton className="h-5 w-48" /></TableHead>
                         <TableHead><Skeleton className="h-5 w-24" /></TableHead>
                         <TableHead className="text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableHead>
+                        <TableHead className="text-right"><Skeleton className="h-5 w-10 ml-auto" /></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -123,6 +154,7 @@ function TableSkeleton() {
                             <TableCell><Skeleton className="h-5 w-40" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                            <TableCell><div className="flex justify-end"><Skeleton className="h-7 w-7" /></div></TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -133,6 +165,10 @@ function TableSkeleton() {
 
 export default function PayoutsClient() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedPayout, setSelectedPayout] = useState<Transaction | null>(null);
+
   const { toast } = useToast();
   const firestore = useFirestore();
 
@@ -144,7 +180,7 @@ export default function PayoutsClient() {
 
   const { data: transactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery, transactionsPath);
 
-  const payoutForm = useForm<z.infer<typeof payoutSchema>>({
+  const form = useForm<z.infer<typeof payoutSchema>>({
     resolver: zodResolver(payoutSchema),
     defaultValues: {
         description: '',
@@ -172,13 +208,59 @@ export default function PayoutsClient() {
       description: `A payout for ${formatCurrency(values.amount)} has been recorded.`,
     });
     
-    payoutForm.reset({
+    form.reset({
         description: '',
         amount: 0,
         date: new Date(),
     });
     setIsAddDialogOpen(false);
   };
+
+  const openEditDialog = (payout: Transaction) => {
+    setSelectedPayout(payout);
+    form.reset({
+        description: payout.description,
+        amount: payout.amount,
+        date: new Date(payout.date),
+    });
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleEditPayout = (values: z.infer<typeof payoutSchema>) => {
+    if (!firestore || !selectedPayout) return;
+    
+    const payoutRef = doc(firestore, transactionsPath, selectedPayout.id);
+    setDocumentNonBlocking(payoutRef, {
+        ...values,
+    }, { merge: true });
+
+    toast({
+        title: 'Payout Updated',
+        description: 'The payout has been successfully updated.',
+    });
+    setIsEditDialogOpen(false);
+    setSelectedPayout(null);
+  };
+  
+  const openDeleteDialog = (payout: Transaction) => {
+    setSelectedPayout(payout);
+    setIsDeleteDialogOpen(true);
+  }
+
+  const handleDeletePayout = () => {
+    if (!firestore || !selectedPayout) return;
+
+    const payoutRef = doc(firestore, transactionsPath, selectedPayout.id);
+    deleteDocumentNonBlocking(payoutRef);
+
+    toast({
+        variant: 'destructive',
+        title: 'Payout Deleted',
+        description: 'The payout has been permanently deleted.',
+    });
+    setIsDeleteDialogOpen(false);
+    setSelectedPayout(null);
+  }
   
   const payoutTransactions = useMemo(() => {
     if (!transactions) return [];
@@ -212,10 +294,10 @@ export default function PayoutsClient() {
                         Fill in the details for the new payout. This will be recorded as an expense.
                     </DialogDescription>
                 </DialogHeader>
-                <Form {...payoutForm}>
-                    <form onSubmit={payoutForm.handleSubmit(handleAddPayout)} className="space-y-4">
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleAddPayout)} className="space-y-4">
                         <FormField
-                            control={payoutForm.control}
+                            control={form.control}
                             name="date"
                             render={({ field }) => (
                             <FormItem className="flex flex-col">
@@ -249,7 +331,7 @@ export default function PayoutsClient() {
                             )}
                         />
                         <FormField
-                            control={payoutForm.control}
+                            control={form.control}
                             name="description"
                             render={({ field }) => (
                                 <FormItem>
@@ -262,7 +344,7 @@ export default function PayoutsClient() {
                             )}
                         />
                         <FormField
-                            control={payoutForm.control}
+                            control={form.control}
                             name="amount"
                             render={({ field }) => (
                                 <FormItem>
@@ -289,9 +371,105 @@ export default function PayoutsClient() {
             </CardDescription>
             </CardHeader>
             <CardContent>
-                {isLoading ? <TableSkeleton /> : <PayoutsTable transactions={payoutTransactions} />}
+                {isLoading ? <TableSkeleton /> : <PayoutsTable transactions={payoutTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />}
             </CardContent>
         </Card>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit Payout</DialogTitle>
+                    <DialogDescription>
+                        Update the details for this payout.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleEditPayout)} className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="date"
+                            render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                                <FormLabel>Date</FormLabel>
+                                <Popover>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                        "w-full pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                        )}
+                                    >
+                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    initialFocus
+                                    />
+                                </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Description</FormLabel>
+                                    <FormControl>
+                                        <Textarea {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="amount"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Amount</FormLabel>
+                                    <FormControl><Input type="number" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="submit">Save Changes</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+
+        {/* Delete Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will permanently delete the payout for &quot;{selectedPayout?.description}&quot;.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeletePayout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Delete
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
     </div>
   );
 }
