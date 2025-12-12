@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -447,8 +448,10 @@ export default function MembersClient() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {filteredMembers.map((member, index) => (
-                    <TableRow key={member.id} id={member.name.replace(/\s+/g, '-')}>
+                    {filteredMembers.map((member, index) => {
+                      const joinDate = member.joinDate instanceof Date ? member.joinDate : (member.joinDate as any).toDate();
+                      return (
+                      <TableRow key={member.id} id={member.name.replace(/\s+/g, '-')}>
                         <TableCell className="font-medium">{index + 1}</TableCell>
                         <TableCell className="font-medium">{member.name}</TableCell>
                         <TableCell>
@@ -457,7 +460,7 @@ export default function MembersClient() {
                         </div>
                         </TableCell>
                         <TableCell>
-                        {new Date(member.joinDate).toLocaleDateString()}
+                          {joinDate.toLocaleDateString()}
                         </TableCell>
                         <TableCell>
                         <Badge
@@ -493,7 +496,7 @@ export default function MembersClient() {
                             </DropdownMenu>
                         </TableCell>
                     </TableRow>
-                    ))}
+                    )})}
                 </TableBody>
                 </Table>
             </div>
