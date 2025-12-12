@@ -117,7 +117,12 @@
             "Social Fund",
             "Operational",
             "Last Respect",
-            "Loan Repayment"
+            "Loan Repayment",
+            "Fines",
+            "New Member Fee",
+            "Interest Income",
+            "Dividends",
+            "Payout"
           ]
         }
       },
@@ -564,3 +569,5 @@
     "reasoning": "The Firestore structure is designed to ensure Authorization Independence, DBAC, and QAPs. Groups are the root level entity. Each group owns Members, Transactions, InsurancePolicies, InsurancePayments, a Constitution, and a SavingsSchedule.  Authorization independence is achieved by nesting entities within their parent Group.  For instance, access to `Transactions` is controlled at the `groups/{groupId}/transactions/{transactionId}` level, and each transaction inherently belongs to a group. Thus, rules do not need to 'get()' data from other collections. Path-based ownership (`/groups/{groupId}/members/{memberId}`) is employed for `Members` and other entities related to `Groups`. This approach is straightforward for securing user-owned data.  No custom claims are used; authentication relies on `request.auth.uid`. Roles are not explicitly defined but implicitly controlled by access to group-owned documents. QAPs are supported because collections are segregated by group and entity type, ensuring that rules are not filters."
   }
 }
+
+    

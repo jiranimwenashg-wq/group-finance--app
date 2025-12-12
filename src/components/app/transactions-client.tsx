@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import { useState, useMemo, useRef, useEffect } from 'react';
@@ -823,18 +824,7 @@ export default function TransactionsClient() {
             description: row.description,
             amount: parseFloat(row.amount),
             type: row.type as 'Income' | 'Expense',
-            category: row.category as
-              | 'Contribution'
-              | 'Fines'
-              | 'New Member Fee'
-              | 'Interest Income'
-              | 'Dividends'
-              | 'Project'
-              | 'Social Fund'
-              | 'Operational'
-              | 'Last Respect'
-              | 'Loan Repayment'
-              | 'Payout',
+            category: row.category as any,
             memberId: member?.id,
             memberName: member?.name,
             groupId: GROUP_ID,
@@ -1196,4 +1186,5 @@ export default function TransactionsClient() {
   );
 }
 
+    
     
