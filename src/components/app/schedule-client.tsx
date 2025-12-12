@@ -43,7 +43,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Input } from "../ui/input";
-import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { GROUP_ID } from "@/lib/data";
 import { Skeleton } from "../ui/skeleton";
@@ -114,6 +114,7 @@ export default function ScheduleClient() {
   
   const membersPath = `groups/${GROUP_ID}/members`;
   const schedulePath = `groups/${GROUP_ID}/savingsSchedules`;
+  const transactionsPath = `groups/${GROUP_ID}/transactions`;
 
   const membersQuery = useMemoFirebase(() => {
       if(!firestore || !GROUP_ID) return null;
@@ -191,6 +192,25 @@ export default function ScheduleClient() {
     if (!firestore || !GROUP_ID) return;
     const docRef = doc(firestore, 'groups', GROUP_ID, 'savingsSchedules', item.id);
     setDocumentNonBlocking(docRef, { status: newStatus }, { merge: true });
+
+    if (newStatus === "Paid") {
+        const transactionsRef = collection(firestore, transactionsPath);
+        const newTransaction = {
+            groupId: GROUP_ID,
+            date: new Date(),
+            description: `Payout to ${item.memberName}`,
+            amount: item.payoutAmount,
+            type: 'Expense' as const,
+            category: 'Operational' as const,
+            memberId: item.memberId,
+            memberName: item.memberName
+        }
+        addDocumentNonBlocking(transactionsRef, newTransaction);
+        toast({
+            title: "Payout Recorded",
+            description: `An expense of ${formatCurrency(item.payoutAmount)} has been recorded for ${item.memberName}.`,
+        });
+    }
   };
 
   const handleEditClick = (item: ScheduleItem) => {
