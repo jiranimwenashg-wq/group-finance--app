@@ -135,12 +135,12 @@ export default function LoansClient() {
 
   const issueLoanForm = useForm<z.infer<typeof loanSchema>>({
     resolver: zodResolver(loanSchema),
-    defaultValues: { interestRate: 0, issueDate: new Date(), reason: '' },
+    defaultValues: { memberId: '', principal: 0, interestRate: 0, issueDate: new Date(), reason: '' },
   });
 
   const recordPaymentForm = useForm<z.infer<typeof paymentSchema>>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: { paymentDate: new Date() },
+    defaultValues: { amount: 0, paymentDate: new Date() },
   });
 
   const handleIssueLoan = (values: z.infer<typeof loanSchema>) => {
@@ -187,7 +187,7 @@ export default function LoansClient() {
       title: 'Loan Issued',
       description: `${formatCurrency(values.principal)} has been advanced to ${member.name}.`,
     });
-    issueLoanForm.reset({ interestRate: 0, issueDate: new Date(), reason: '' });
+    issueLoanForm.reset({ memberId: '', principal: 0, interestRate: 0, issueDate: new Date(), reason: '' });
     setIsIssueLoanOpen(false);
   };
 
