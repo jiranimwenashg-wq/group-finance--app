@@ -13,7 +13,7 @@ import { Button } from '../ui/button';
 import Link from 'next/link';
 import { Input } from '../ui/input';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, getDocs } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 
 interface MemberReportCardProps {
@@ -38,20 +38,17 @@ function MemberReportCard({ member, transactions, policies }: MemberReportCardPr
     e.stopPropagation();
     setIsLoading(true);
     try {
-        // We need all insurance payments here to generate the report.
-        // Let's fetch them on demand. This is not ideal for UI but necessary for report generation.
-         const allPayments: InsurancePayment[] = [];
-         if (firestore) {
-            for (const p of policies) {
-                const paymentsPath = `groups/${GROUP_ID}/insurancePolicies/${p.id}/payments`;
-                const paymentsQuery = query(collection(firestore, paymentsPath));
-                const { getDocs } = await import('firebase/firestore');
-                const querySnapshot = await getDocs(paymentsQuery);
-                querySnapshot.forEach(doc => {
-                    allPayments.push({ id: doc.id, ...doc.data() } as InsurancePayment);
-                });
-            }
-         }
+        const allPayments: InsurancePayment[] = [];
+        if (firestore) {
+           for (const p of policies) {
+               const paymentsPath = `groups/${GROUP_ID}/insurancePolicies/${p.id}/payments`;
+               const paymentsQuery = query(collection(firestore, paymentsPath));
+               const querySnapshot = await getDocs(paymentsQuery);
+               querySnapshot.forEach(doc => {
+                   allPayments.push({ id: doc.id, ...doc.data() } as InsurancePayment);
+               });
+           }
+        }
 
         const memberInsurance = policies.map(policy => {
             const currentMonthKey = `${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}`;
@@ -114,7 +111,7 @@ function MemberReportCard({ member, transactions, policies }: MemberReportCardPr
       <CardContent className="space-y-4">
         <div>
             <h4 className="font-semibold text-sm mb-2">AI-Generated Summary</h4>
-            {report && <p className="text-sm text-muted-foreground">{report}</p>}
+            {report ? <p className="text-sm text-muted-foreground">{report}</p> : null}
             {isLoading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Generating...</div>}
             {!report && !isLoading && (
                 <Button onClick={getReport} size="sm">Generate Report</Button>
