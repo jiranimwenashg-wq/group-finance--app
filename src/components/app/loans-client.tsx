@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -53,19 +54,27 @@ import {
 import { collection, doc, query, where } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
-import { Banknote, MoreHorizontal, PlusCircle, HandCoins } from 'lucide-react';
+import { Banknote, MoreHorizontal, PlusCircle, HandCoins, Calendar as CalendarIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { formatCurrency } from './recent-transactions';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { Calendar } from '../ui/calendar';
+import { Textarea } from '../ui/textarea';
 
 const loanSchema = z.object({
   memberId: z.string().min(1, 'Member is required'),
   principal: z.coerce.number().positive('Principal must be a positive number'),
   interestRate: z.coerce.number().min(0, 'Interest rate cannot be negative'),
+  issueDate: z.date({ required_error: 'Issue date is required.'}),
+  reason: z.string().min(1, 'Reason for the loan is required.'),
 });
 
 const paymentSchema = z.object({
     amount: z.coerce.number().positive('Payment amount must be positive'),
+    paymentDate: z.date({ required_error: 'Payment date is required.' }),
 });
 
 function LoansTableSkeleton() {
@@ -126,11 +135,12 @@ export default function LoansClient() {
 
   const issueLoanForm = useForm<z.infer<typeof loanSchema>>({
     resolver: zodResolver(loanSchema),
-    defaultValues: { interestRate: 0 },
+    defaultValues: { interestRate: 0, issueDate: new Date(), reason: '' },
   });
 
   const recordPaymentForm = useForm<z.infer<typeof paymentSchema>>({
     resolver: zodResolver(paymentSchema),
+    defaultValues: { paymentDate: new Date() },
   });
 
   const handleIssueLoan = (values: z.infer<typeof loanSchema>) => {
@@ -150,8 +160,9 @@ export default function LoansClient() {
         principal: principal,
         interestRate: values.interestRate,
         balance: balance,
-        issueDate: new Date(),
+        issueDate: values.issueDate,
         status: 'Active',
+        reason: values.reason,
     };
     
     const loansRef = collection(firestore, loansPath);
@@ -160,7 +171,7 @@ export default function LoansClient() {
     // Create a corresponding expense transaction
     const newTransaction = {
         groupId: GROUP_ID,
-        date: new Date(),
+        date: values.issueDate,
         description: `Loan issued to ${member.name}`,
         amount: values.principal,
         type: 'Expense' as const,
@@ -176,7 +187,7 @@ export default function LoansClient() {
       title: 'Loan Issued',
       description: `${formatCurrency(values.principal)} has been advanced to ${member.name}.`,
     });
-    issueLoanForm.reset({ interestRate: 0 });
+    issueLoanForm.reset({ interestRate: 0, issueDate: new Date(), reason: '' });
     setIsIssueLoanOpen(false);
   };
 
@@ -199,7 +210,7 @@ export default function LoansClient() {
 
     const newTransaction = {
         groupId: GROUP_ID,
-        date: new Date(),
+        date: values.paymentDate,
         description: `Loan repayment by ${selectedLoan.memberName}`,
         amount: values.amount,
         type: 'Income' as const,
@@ -216,7 +227,7 @@ export default function LoansClient() {
         title: 'Payment Recorded',
         description: `Payment of ${formatCurrency(values.amount)} for ${selectedLoan.memberName} has been recorded.`
     });
-    recordPaymentForm.reset();
+    recordPaymentForm.reset({ paymentDate: new Date()});
     setIsRecordPaymentOpen(false);
     setSelectedLoan(null);
   };
@@ -285,6 +296,40 @@ export default function LoansClient() {
                                 </FormItem>
                             )}
                         />
+                         <FormField
+                            control={issueLoanForm.control}
+                            name="issueDate"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Issue Date</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "w-[240px] pl-3 text-left font-normal",
+                                                !field.value && "text-muted-foreground"
+                                            )}
+                                            >
+                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            initialFocus
+                                        />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <FormField
                             control={issueLoanForm.control}
                             name="principal"
@@ -308,6 +353,19 @@ export default function LoansClient() {
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                            control={issueLoanForm.control}
+                            name="reason"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Reason</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="e.g., School fees" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <DialogFooter>
                             <Button type="submit">Issue Loan</Button>
                         </DialogFooter>
@@ -327,6 +385,40 @@ export default function LoansClient() {
                 </DialogHeader>
                  <Form {...recordPaymentForm}>
                     <form onSubmit={recordPaymentForm.handleSubmit(handleRecordPayment)} className="space-y-4">
+                        <FormField
+                            control={recordPaymentForm.control}
+                            name="paymentDate"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Payment Date</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "w-[240px] pl-3 text-left font-normal",
+                                                !field.value && "text-muted-foreground"
+                                            )}
+                                            >
+                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            initialFocus
+                                        />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <FormField
                             control={recordPaymentForm.control}
                             name="amount"

@@ -53,6 +53,7 @@ export type Loan = {
   balance: number;
   issueDate: Date;
   status: 'Active' | 'Paid Off';
+  reason: string;
 };
 
 
