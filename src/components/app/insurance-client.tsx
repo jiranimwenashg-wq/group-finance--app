@@ -258,37 +258,48 @@ export default function InsuranceClient() {
     }
   };
   
-  const handleMarkMonthAsPaid = () => {
-     if(!firestore || !activeMembers || !payments || !selectedPolicyId || !selectedPolicy || !GROUP_ID) return;
-     const monthKey = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}`;
+  const handleMarkMonthAsPaid = async () => {
+    if (!firestore || !activeMembers || !selectedPolicyId || !selectedPolicy || !GROUP_ID) return;
+    
+    const monthKey = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}`;
+    const batch = writeBatch(firestore);
 
-     activeMembers.forEach(member => {
-        const payment = payments.find(p => p.memberId === member.id);
+    activeMembers.forEach(member => {
+        const payment = payments?.find(p => p.memberId === member.id);
         
         if (payment) {
-            const paymentRef = doc(firestore, 'groups', GROUP_ID, 'insurancePolicies', selectedPolicyId, 'payments', payment.id);
+            // Document exists, update it
+            const paymentRef = doc(firestore, paymentsPath, payment.id);
             if (payment.payments[monthKey] !== 'Waived') {
-                setDocumentNonBlocking(paymentRef, {
-                    payments: {
-                        ...payment.payments,
-                        [monthKey]: 'Paid',
-                    }
-                }, { merge: true });
+                batch.update(paymentRef, { [`payments.${monthKey}`]: 'Paid' });
             }
         } else {
-             const paymentsRef = collection(firestore, 'groups', GROUP_ID, 'insurancePolicies', selectedPolicyId, 'payments');
-             const newPayment: Omit<InsurancePayment, 'id'> = {
+            // Document does not exist, create it
+            const newPaymentRef = doc(collection(firestore, paymentsPath));
+            const newPaymentDoc: Omit<InsurancePayment, 'id'> = {
                 memberId: member.id,
                 policyId: selectedPolicy.id,
                 groupId: GROUP_ID,
-                payments: {
-                    [monthKey]: 'Paid'
-                }
+                payments: { [monthKey]: 'Paid' }
             };
-            addDocumentNonBlocking(paymentsRef, newPayment);
+            batch.set(newPaymentRef, newPaymentDoc);
         }
     });
-  };
+
+    try {
+        await batch.commit();
+        toast({
+            title: "Success",
+            description: `All members have been marked as paid for ${months[selectedMonth].toLocaleString('default', { month: 'long' })}.`,
+        });
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: "Error",
+            description: "Could not update all payments. Please try again.",
+        });
+    }
+};
 
   const handleEditPolicySubmit = (values: z.infer<typeof policySchema>) => {
     if (!firestore || !selectedPolicyId) return;
