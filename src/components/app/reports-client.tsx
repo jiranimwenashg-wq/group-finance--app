@@ -19,28 +19,60 @@ import { GROUP_ID } from '@/lib/data';
 interface MemberReportCardProps {
   member: Member;
   transactions: Transaction[];
-  insurancePayments: InsurancePayment[];
   policies: InsurancePolicy[];
 }
 
-function MemberReportCard({ member, transactions, insurancePayments, policies }: MemberReportCardProps) {
+function MemberReportCard({ member, transactions, policies }: MemberReportCardProps) {
   const [report, setReport] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const userAvatar = placeholderImages.find((p) => p.id === 'avatar-1');
+  const firestore = useFirestore();
 
+  // Fetch all payments for all policies. This is not ideal for performance but avoids the hook error.
+  // A better solution would involve a collectionGroup query if rules allow, or moving this logic server-side.
+  const allPaymentsPaths = useMemoFirebase(() => {
+    if (!firestore || !policies) return [];
+    return policies.map(p => ({
+        path: `groups/${GROUP_ID}/insurancePolicies/${p.id}/payments`, 
+        policyId: p.id
+    }));
+  }, [firestore, policies]);
+
+  // This is still not ideal, but we can call useCollection statically for each path.
+  // The original error was because the number of policies could change.
+  // Let's fetch all payments in one go for the whole app.
   const memberTransactions = useMemo(
     () => transactions.filter((t) => t.memberId === member.id),
     [transactions, member.id]
   );
-  
-  const memberInsurance = useMemo(() => {
-    const currentMonthKey = `${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}`;
+
+  // This is where we need to get the insurance data.
+  // We'll fetch it inside the card.
+  const paymentsQueries = useMemoFirebase(() => {
+    if (!firestore || !policies || !GROUP_ID) return [];
     return policies.map(policy => {
-        const payment = insurancePayments.find(p => p.memberId === member.id && p.policyId === policy.id);
-        const status = payment?.payments[currentMonthKey] || 'Unpaid';
-        return { policyName: policy.name, status };
+      const path = `groups/${GROUP_ID}/insurancePolicies/${policy.id}/payments`;
+      return {
+        query: query(collection(firestore, path)),
+        path,
+        policyId: policy.id
+      };
     });
-  }, [insurancePayments, policies, member.id]);
+  }, [firestore, policies]);
+
+  // This part is tricky. The number of hooks must be constant.
+  // A workaround is to have a hook that fetches from multiple queries, but that's complex.
+  // For now, let's fetch payments within the card for the specific member.
+  const memberPaymentsQuery = useMemoFirebase(() => {
+      if (!firestore) return null;
+      // This is not a valid query. We need to query each sub-collection.
+      // The previous attempt did this in a loop, which is wrong.
+      // Let's fetch ALL payments and filter client-side. This is inefficient but will fix the hook error.
+      // A collection group query would be best but requires index and rule changes.
+      
+      // Let's re-implement useAllInsurancePayments correctly.
+      return null;
+  }, [firestore]);
 
 
   const getReport = async (e: React.MouseEvent) => {
@@ -48,6 +80,28 @@ function MemberReportCard({ member, transactions, insurancePayments, policies }:
     e.stopPropagation();
     setIsLoading(true);
     try {
+        // We need all insurance payments here to generate the report.
+        // Let's fetch them on demand. This is not ideal for UI but necessary for report generation.
+         const allPayments: InsurancePayment[] = [];
+         if (firestore) {
+            for (const p of policies) {
+                const paymentsPath = `groups/${GROUP_ID}/insurancePolicies/${p.id}/payments`;
+                const paymentsQuery = query(collection(firestore, paymentsPath));
+                const { getDocs } = await import('firebase/firestore');
+                const querySnapshot = await getDocs(paymentsQuery);
+                querySnapshot.forEach(doc => {
+                    allPayments.push({ id: doc.id, ...doc.data() } as InsurancePayment);
+                });
+            }
+         }
+
+        const memberInsurance = policies.map(policy => {
+            const currentMonthKey = `${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}`;
+            const payment = allPayments.find(p => p.memberId === member.id && p.policyId === policy.id);
+            const status = payment?.payments[currentMonthKey] || 'Unpaid';
+            return { policyName: policy.name, status };
+        });
+
       const input = {
         memberName: member.name,
         transactions: memberTransactions.map(t => ({
@@ -62,6 +116,7 @@ function MemberReportCard({ member, transactions, insurancePayments, policies }:
       const result = await generateMemberReport(input);
       setReport(result.report);
     } catch (error) {
+        console.error(error);
       setReport('Could not generate a report at this time.');
     } finally {
       setIsLoading(false);
@@ -122,33 +177,6 @@ function MemberReportCard({ member, transactions, insurancePayments, policies }:
   );
 }
 
-function useAllInsurancePayments(policies: InsurancePolicy[]) {
-    const firestore = useFirestore();
-
-    const paymentQueries = useMemoFirebase(() => {
-        if (!firestore || !policies || !GROUP_ID) return [];
-        return policies.map(policy => {
-            const path = `groups/${GROUP_ID}/insurancePolicies/${policy.id}/payments`;
-            return {
-                query: query(collection(firestore, path)),
-                path
-            };
-        });
-    }, [firestore, policies]);
-
-    const results = paymentQueries.map(({ query: memoizedQuery, path }) => {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        return useCollection<InsurancePayment>(memoizedQuery, path);
-    });
-
-    const allPayments = useMemo(() => {
-        return results.flatMap(result => result.data || []);
-    }, [results]);
-
-    const isLoading = results.some(result => result.isLoading);
-
-    return { data: allPayments, isLoading };
-}
 
 export default function ReportsClient() {
   const [filter, setFilter] = useState('');
@@ -176,7 +204,6 @@ export default function ReportsClient() {
 
   const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersQuery, membersPath);
   const { data: transactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery, transactionsPath);
-  const { data: allPayments, isLoading: isLoadingInsurance } = useAllInsurancePayments(policies || []);
 
 
   const activeMembers = useMemo(() => {
@@ -187,7 +214,7 @@ export default function ReportsClient() {
       .sort((a,b) => a.name.localeCompare(b.name));
   }, [members, filter]);
 
-  if (isLoadingMembers || isLoadingTransactions || isLoadingInsurance || isLoadingPolicies) {
+  if (isLoadingMembers || isLoadingTransactions || isLoadingPolicies) {
       return (
          <div className="space-y-4">
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -223,7 +250,6 @@ export default function ReportsClient() {
             <MemberReportCard
               member={member}
               transactions={transactions || []}
-              insurancePayments={allPayments || []}
               policies={policies || []}
             />
           </Link>
