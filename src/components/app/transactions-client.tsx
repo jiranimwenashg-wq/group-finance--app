@@ -353,8 +353,7 @@ function TransactionsTable({
   onDelete: (transaction: Transaction) => void;
 }) {
   return (
-    <div className="rounded-lg border shadow-sm">
-      <div className="relative w-full overflow-auto">
+    <ScrollArea className="w-full whitespace-nowrap rounded-lg border shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -428,8 +427,7 @@ function TransactionsTable({
             )})}
           </TableBody>
         </Table>
-      </div>
-    </div>
+    </ScrollArea>
   );
 }
 
