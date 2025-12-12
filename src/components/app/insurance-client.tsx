@@ -11,7 +11,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { InsurancePayment, Member, InsurancePolicy } from '@/lib/data';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -64,7 +63,7 @@ function TableSkeleton() {
                             <TableCell><Skeleton className="h-5 w-36" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                              {[...Array(12)].map((_, j) => (
-                                <TableCell key={j}><Skeleton className="h-5 w-5 mx-auto" /></TableCell>
+                                <TableCell key={j}><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
                             ))}
                             <TableCell><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
                         </TableRow>
@@ -233,7 +232,7 @@ export default function InsuranceClient() {
   const handlePaymentChange = (
     memberId: string,
     month: string,
-    checked: boolean
+    status: 'Paid' | 'Unpaid' | 'Waived'
   ) => {
     if(!firestore || !selectedPolicyId || !selectedPolicy || !GROUP_ID) return;
 
@@ -242,7 +241,7 @@ export default function InsuranceClient() {
     if (payment) {
         const paymentRef = doc(firestore, 'groups', GROUP_ID, 'insurancePolicies', selectedPolicyId, 'payments', payment.id);
         const newPayments = { ...payment.payments };
-        newPayments[month] = checked ? 'Paid' : 'Unpaid';
+        newPayments[month] = status;
         setDocumentNonBlocking(paymentRef, { payments: newPayments }, { merge: true });
     } else {
         const paymentsRef = collection(firestore, 'groups', GROUP_ID, 'insurancePolicies', selectedPolicyId, 'payments');
@@ -251,7 +250,7 @@ export default function InsuranceClient() {
             policyId: selectedPolicy.id,
             groupId: GROUP_ID,
             payments: {
-                [month]: checked ? 'Paid' : 'Unpaid'
+                [month]: status
             }
         };
         addDocumentNonBlocking(paymentsRef, newPayment);
@@ -368,6 +367,18 @@ export default function InsuranceClient() {
     new Date().getFullYear(),
     new Date().getFullYear() - 1,
   ];
+
+  const getStatusBadge = (status: 'Paid' | 'Unpaid' | 'Waived' | undefined) => {
+    switch (status) {
+        case 'Paid':
+            return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Paid</Badge>;
+        case 'Waived':
+            return <Badge variant="outline">Waived</Badge>;
+        case 'Unpaid':
+        default:
+            return <Badge variant="destructive">Unpaid</Badge>;
+    }
+  };
 
   const isLoading = isLoadingMembers || isLoadingPayments || isLoadingPolicies;
 
@@ -539,33 +550,28 @@ export default function InsuranceClient() {
                             const monthKey = `${selectedYear}-${(month.getMonth() + 1)
                             .toString()
                             .padStart(2, '0')}`;
-                            const status = memberPayment?.payments[monthKey];
-
-                            if (status === 'Waived') {
-                            return (
-                                <TableCell key={monthKey} className="text-center">
-                                <Badge variant="outline">N/A</Badge>
-                                </TableCell>
-                            );
-                            }
-
+                            const status = memberPayment?.payments[monthKey] || 'Unpaid';
+                            
                             return (
                             <TableCell key={monthKey} className="text-center">
-                                <Checkbox
-                                    checked={status === 'Paid'}
-                                    onCheckedChange={checked =>
-                                    handlePaymentChange(
-                                        member.id,
-                                        monthKey,
-                                        !!checked
-                                    )
-                                    }
-                                    aria-label={`Payment for ${
-                                    member.name
-                                    } in ${month.toLocaleString('default', {
-                                    month: 'long',
-                                    })}`}
-                                />
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="w-24 justify-start p-1 h-auto">
+                                            {getStatusBadge(status)}
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuItem onClick={() => handlePaymentChange(member.id, monthKey, 'Paid')}>
+                                            Mark as Paid
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handlePaymentChange(member.id, monthKey, 'Unpaid')}>
+                                            Mark as Unpaid
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handlePaymentChange(member.id, monthKey, 'Waived')}>
+                                            Mark as Waived
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </TableCell>
                             );
                         })}
