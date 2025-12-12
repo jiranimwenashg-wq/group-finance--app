@@ -39,6 +39,7 @@ function OverviewCards({ transactions }: { transactions: Transaction[] }) {
     const income = recentTransactions
       .filter((t) => t.type === 'Income')
       .reduce((sum, t) => sum + t.amount, 0);
+
     const expenses = recentTransactions
       .filter((t) => t.type === 'Expense')
       .reduce((sum, t) => sum + t.amount, 0);
@@ -79,7 +80,7 @@ function OverviewCards({ transactions }: { transactions: Transaction[] }) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {formatCurrency(Math.abs(overview.expenses))}
+            {formatCurrency(overview.expenses)}
           </div>
           <p className="text-xs text-muted-foreground">in the last 30 days</p>
         </CardContent>

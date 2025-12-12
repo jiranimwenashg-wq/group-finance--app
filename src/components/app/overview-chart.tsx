@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/chart";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useMemo } from "react";
+import { Transaction } from "@/lib/data";
 
 type OverviewChartProps = {
   data: { month: string; income: number; expenses: number }[];
@@ -62,7 +63,7 @@ export function OverviewChart({ data }: OverviewChartProps) {
   );
 }
 
-export function OverviewChartData({ transactions }: { transactions: any[] }) {
+export function OverviewChartData({ transactions }: { transactions: Transaction[] }) {
   const chartData = useMemo(() => {
     // This is a simplified example. In a real app, you'd aggregate by month.
     const incomeByMonth: Record<string, number> = {};
@@ -88,7 +89,7 @@ export function OverviewChartData({ transactions }: { transactions: any[] }) {
     return allMonths.map((month) => ({
       month,
       income: incomeByMonth[month] || 0,
-      expenses: (expensesByMonth[month] || 0) * -1,
+      expenses: expensesByMonth[month] || 0,
     }));
   }, [transactions]);
 
