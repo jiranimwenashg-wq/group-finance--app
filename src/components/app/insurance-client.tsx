@@ -334,22 +334,26 @@ export default function InsuranceClient() {
 };
 
 
-  const monthlyStats = useMemo(() => {
-    if (!selectedPolicy) return { total: 0, collected: 0, outstanding: 0};
-    const allActiveMembers = members?.filter(m => m.status === 'Active') || [];
-    const monthKey = `${selectedYear}-${(selectedMonth + 1)
-      .toString()
-      .padStart(2, '0')}`;
-    const totalPossible = allActiveMembers.length * selectedPolicy.premiumAmount;
+  const summaryStats = useMemo(() => {
+    if (!selectedPolicy || !members) return { total: 0, collected: 0, outstanding: 0 };
+    
+    const allActiveMembers = members.filter(m => m.status === 'Active');
+    let totalPossible = 0;
     let collected = 0;
 
-    payments?.forEach(p => {
-      if (
-        allActiveMembers.some(am => am.id === p.memberId) &&
-        p.payments[monthKey] === 'Paid'
-      ) {
-        collected += selectedPolicy.premiumAmount;
-      }
+    allActiveMembers.forEach(member => {
+        const payment = payments?.find(p => p.memberId === member.id);
+        months.forEach(month => {
+            const monthKey = `${selectedYear}-${(month.getMonth() + 1).toString().padStart(2, '0')}`;
+            const status = payment?.payments[monthKey];
+            
+            if (status !== 'Waived') {
+                totalPossible += selectedPolicy.premiumAmount;
+                if (status === 'Paid') {
+                    collected += selectedPolicy.premiumAmount;
+                }
+            }
+        });
     });
 
     return {
@@ -357,13 +361,7 @@ export default function InsuranceClient() {
       collected: collected,
       outstanding: totalPossible - collected,
     };
-  }, [
-    selectedYear,
-    selectedMonth,
-    members,
-    selectedPolicy,
-    payments,
-  ]);
+  }, [selectedYear, members, selectedPolicy, payments, months]);
 
   const years = [
     new Date().getFullYear() + 1,
@@ -430,26 +428,26 @@ export default function InsuranceClient() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Premiums ({months[selectedMonth].toLocaleString('default', { month: 'long' })})</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Premiums ({selectedYear})</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? <Skeleton className="h-8 w-24"/> : <div className="text-2xl font-bold">{formatCurrency(monthlyStats.total)}</div>}
+            {isLoading ? <Skeleton className="h-8 w-24"/> : <div className="text-2xl font-bold">{formatCurrency(summaryStats.total)}</div>}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Collected ({selectedYear})</CardTitle>
           </CardHeader>
           <CardContent>
-             {isLoading ? <Skeleton className="h-8 w-24"/> : <div className="text-2xl font-bold text-green-600">{formatCurrency(monthlyStats.collected)}</div>}
+             {isLoading ? <Skeleton className="h-8 w-24"/> : <div className="text-2xl font-bold text-green-600">{formatCurrency(summaryStats.collected)}</div>}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Outstanding ({selectedYear})</CardTitle>
           </CardHeader>
           <CardContent>
-             {isLoading ? <Skeleton className="h-8 w-24"/> : <div className="text-2xl font-bold text-destructive">{formatCurrency(monthlyStats.outstanding)}</div>}
+             {isLoading ? <Skeleton className="h-8 w-24"/> : <div className="text-2xl font-bold text-destructive">{formatCurrency(summaryStats.outstanding)}</div>}
           </CardContent>
         </Card>
       </div>
