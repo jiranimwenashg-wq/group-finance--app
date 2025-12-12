@@ -46,6 +46,7 @@ const prompt = ai.definePrompt({
   name: 'generateMemberReportPrompt',
   input: {schema: GenerateMemberReportInputSchema},
   output: {schema: GenerateMemberReportOutputSchema},
+  model: 'googleai/gemini-pro',
   prompt: `You are the financial secretary of a community group. Your task is to generate a concise, encouraging, and informative financial report card for a member named {{memberName}}.
 
 Use the following data to create a short narrative summary (2-3 sentences).
