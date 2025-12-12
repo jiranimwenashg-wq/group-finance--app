@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Member, Transaction, InsurancePayment, InsurancePolicy } from '@/lib/data';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { placeholderImages } from '@/lib/placeholder-images.json';
 import { generateMemberReport } from '@/ai/flows/generate-member-report';
@@ -13,7 +13,7 @@ import { Button } from '../ui/button';
 import Link from 'next/link';
 import { Input } from '../ui/input';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, getDocs } from 'firebase/firestore';
+import { collection, query, getDocs, where } from 'firebase/firestore';
 import { GROUP_ID } from '@/lib/data';
 
 interface MemberReportCardProps {
@@ -25,8 +25,27 @@ interface MemberReportCardProps {
 function MemberReportCard({ member, transactions, policies }: MemberReportCardProps) {
   const [report, setReport] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [insurancePayments, setInsurancePayments] = useState<InsurancePayment[]>([]);
   const userAvatar = placeholderImages.find((p) => p.id === 'avatar-1');
   const firestore = useFirestore();
+  
+  useEffect(() => {
+    async function fetchMemberPayments() {
+      if (!firestore || policies.length === 0) return;
+
+      const memberPayments: InsurancePayment[] = [];
+      for (const policy of policies) {
+        const paymentsPath = `groups/${GROUP_ID}/insurancePolicies/${policy.id}/payments`;
+        const q = query(collection(firestore, paymentsPath), where('memberId', '==', member.id));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach(doc => {
+          memberPayments.push({ id: doc.id, ...doc.data() } as InsurancePayment);
+        });
+      }
+      setInsurancePayments(memberPayments);
+    }
+    fetchMemberPayments();
+  }, [firestore, member.id, policies]);
 
   const memberTransactions = useMemo(
     () => transactions.filter((t) => t.memberId === member.id),
@@ -38,21 +57,9 @@ function MemberReportCard({ member, transactions, policies }: MemberReportCardPr
     e.stopPropagation();
     setIsLoading(true);
     try {
-        const allPayments: InsurancePayment[] = [];
-        if (firestore) {
-           for (const p of policies) {
-               const paymentsPath = `groups/${GROUP_ID}/insurancePolicies/${p.id}/payments`;
-               const paymentsQuery = query(collection(firestore, paymentsPath));
-               const querySnapshot = await getDocs(paymentsQuery);
-               querySnapshot.forEach(doc => {
-                   allPayments.push({ id: doc.id, ...doc.data() } as InsurancePayment);
-               });
-           }
-        }
-
-        const memberInsurance = policies.map(policy => {
+        const memberInsuranceSummary = policies.map(policy => {
             const currentMonthKey = `${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}`;
-            const payment = allPayments.find(p => p.memberId === member.id && p.policyId === policy.id);
+            const payment = insurancePayments.find(p => p.policyId === policy.id);
             const status = payment?.payments[currentMonthKey] || 'Unpaid';
             return { policyName: policy.name, status };
         });
@@ -69,7 +76,7 @@ function MemberReportCard({ member, transactions, policies }: MemberReportCardPr
                 category: t.category,
             }
         }),
-        insurancePayments: memberInsurance,
+        insurancePayments: memberInsuranceSummary,
       };
       const result = await generateMemberReport(input);
       setReport(result.report);
@@ -163,7 +170,6 @@ export default function ReportsClient() {
   const { data: members, isLoading: isLoadingMembers } = useCollection<Member>(membersQuery, membersPath);
   const { data: transactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery, transactionsPath);
 
-
   const activeMembers = useMemo(() => {
     if (!members) return [];
     return members
@@ -171,8 +177,10 @@ export default function ReportsClient() {
       .filter(m => m.name.toLowerCase().includes(filter.toLowerCase()))
       .sort((a,b) => a.name.localeCompare(b.name));
   }, [members, filter]);
+  
+  const isLoadingData = isLoadingMembers || isLoadingTransactions || isLoadingPolicies;
 
-  if (isLoadingMembers || isLoadingTransactions || isLoadingPolicies) {
+  if (isLoadingData) {
       return (
          <div className="space-y-4">
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
