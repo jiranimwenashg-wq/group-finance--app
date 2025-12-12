@@ -145,7 +145,6 @@ export default function LoansClient() {
 
   const editLoanForm = useForm<z.infer<typeof loanSchema>>({
     resolver: zodResolver(loanSchema),
-    defaultValues: { memberId: '', principal: 0, interestRate: 0, issueDate: new Date(), reason: '' },
   });
 
   const recordPaymentForm = useForm<z.infer<typeof paymentSchema>>({
@@ -155,11 +154,16 @@ export default function LoansClient() {
 
    useEffect(() => {
     if (selectedLoan && isEditLoanOpen) {
+      // Firestore `Timestamp` objects need to be converted to JS `Date` objects
+      const issueDate = selectedLoan.issueDate instanceof Date 
+        ? selectedLoan.issueDate 
+        : (selectedLoan.issueDate as any).toDate();
+
       editLoanForm.reset({
         memberId: selectedLoan.memberId,
         principal: selectedLoan.principal,
         interestRate: selectedLoan.interestRate,
-        issueDate: new Date(selectedLoan.issueDate),
+        issueDate: issueDate,
         reason: selectedLoan.reason,
       });
     }
@@ -322,7 +326,11 @@ export default function LoansClient() {
       .filter((loan) =>
         loan.memberName.toLowerCase().includes(filter.toLowerCase())
       )
-      .sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
+      .sort((a, b) => {
+        const dateA = a.issueDate instanceof Date ? a.issueDate : (a.issueDate as any).toDate();
+        const dateB = b.issueDate instanceof Date ? b.issueDate : (b.issueDate as any).toDate();
+        return dateB.getTime() - dateA.getTime();
+      });
   }, [loans, filter]);
 
   const isLoading = isLoadingMembers || isLoadingLoans;
@@ -648,13 +656,15 @@ export default function LoansClient() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredLoans.map((loan) => (
+                        {filteredLoans.map((loan) => {
+                          const issueDate = loan.issueDate instanceof Date ? loan.issueDate : (loan.issueDate as any).toDate();
+                          return (
                             <TableRow key={loan.id}>
                                 <TableCell className="font-medium">{loan.memberName}</TableCell>
                                 <TableCell>{formatCurrency(loan.principal)}</TableCell>
                                 <TableCell>{loan.interestRate}%</TableCell>
                                 <TableCell className="font-semibold text-destructive">{formatCurrency(loan.balance)}</TableCell>
-                                <TableCell>{new Date(loan.issueDate).toLocaleDateString()}</TableCell>
+                                <TableCell>{issueDate.toLocaleDateString()}</TableCell>
                                 <TableCell>
                                     <Badge variant={loan.status === 'Active' ? 'destructive' : 'default'}>
                                         {loan.status}
@@ -685,7 +695,7 @@ export default function LoansClient() {
                                     </DropdownMenu>
                                 </TableCell>
                             </TableRow>
-                        ))}
+                        )})}
                     </TableBody>
                 </Table>
             </div>

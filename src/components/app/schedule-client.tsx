@@ -136,8 +136,12 @@ export default function ScheduleClient() {
   );
   
   const sortedSchedule = useMemo(
-      () => schedule?.sort((a,b) => new Date(a.payoutDate).getTime() - new Date(b.payoutDate).getTime()) || [],
-      [schedule]
+    () => schedule?.sort((a,b) => {
+        const dateA = a.payoutDate instanceof Date ? a.payoutDate : (a.payoutDate as any).toDate();
+        const dateB = b.payoutDate instanceof Date ? b.payoutDate : (b.payoutDate as any).toDate();
+        return dateA.getTime() - dateB.getTime();
+    }) || [],
+    [schedule]
   )
 
   const generateSchedule = () => {
@@ -178,8 +182,12 @@ export default function ScheduleClient() {
 
   useEffect(() => {
     if (selectedItem) {
+        const payoutDate = selectedItem.payoutDate instanceof Date 
+            ? selectedItem.payoutDate 
+            : (selectedItem.payoutDate as any).toDate();
+
         form.reset({
-            payoutDate: new Date(selectedItem.payoutDate),
+            payoutDate: payoutDate,
             payoutAmount: selectedItem.payoutAmount,
         })
     }
@@ -291,10 +299,12 @@ export default function ScheduleClient() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedSchedule.map((item) => (
+                  {sortedSchedule.map((item) => {
+                    const payoutDate = item.payoutDate instanceof Date ? item.payoutDate : (item.payoutDate as any).toDate();
+                    return (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium">{format(new Date(item.payoutDate), "MMMM yyyy")}</TableCell>
-                      <TableCell>{format(new Date(item.payoutDate), "do MMMM yyyy")}</TableCell>
+                      <TableCell className="font-medium">{format(payoutDate, "MMMM yyyy")}</TableCell>
+                      <TableCell>{format(payoutDate, "do MMMM yyyy")}</TableCell>
                       <TableCell>{item.memberName}</TableCell>
                        <TableCell>{formatCurrency(item.payoutAmount)}</TableCell>
                       <TableCell>
@@ -338,7 +348,7 @@ export default function ScheduleClient() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )})}
                 </TableBody>
               </Table>
             </div>
@@ -379,7 +389,7 @@ export default function ScheduleClient() {
                                         !field.value && "text-muted-foreground"
                                         )}
                                     >
-                                        {field.value ? (
+                                        {field.value instanceof Date && !isNaN(field.value.getTime()) ? (
                                         format(field.value, "PPP")
                                         ) : (
                                         <span>Pick a date</span>
@@ -429,7 +439,7 @@ export default function ScheduleClient() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the payout for <span className="font-semibold">{selectedItem?.memberName}</span> on <span className="font-semibold">{selectedItem ? format(new Date(selectedItem.payoutDate), "do MMMM yyyy") : ''}</span>.
+              This will permanently delete the payout for <span className="font-semibold">{selectedItem?.memberName}</span> on <span className="font-semibold">{selectedItem ? format(selectedItem.payoutDate instanceof Date ? selectedItem.payoutDate : (selectedItem.payoutDate as any).toDate(), "do MMMM yyyy") : ''}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

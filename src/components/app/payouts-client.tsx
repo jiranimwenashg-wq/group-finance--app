@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -92,41 +92,44 @@ function PayoutsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.map((transaction) => (
-              <TableRow key={transaction.id}>
-                <TableCell>
-                  {new Date(transaction.date).toLocaleDateString()}
-                </TableCell>
-                <TableCell className="font-medium">
-                  {transaction.description}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{transaction.category}</Badge>
-                </TableCell>
-                <TableCell
-                  className={`text-right font-semibold text-red-600`}
-                >
-                  {formatCurrency(transaction.amount)}
-                </TableCell>
-                <TableCell className="text-right">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => onEdit(transaction)}>
-                                <Pencil className="mr-2 h-4 w-4" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onDelete(transaction)} className="text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
+            {transactions.map((transaction) => {
+              const transactionDate = transaction.date instanceof Date ? transaction.date : (transaction.date as any).toDate();
+              return (
+                <TableRow key={transaction.id}>
+                  <TableCell>
+                    {transactionDate.toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {transaction.description}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{transaction.category}</Badge>
+                  </TableCell>
+                  <TableCell
+                    className={`text-right font-semibold text-red-600`}
+                  >
+                    {formatCurrency(transaction.amount)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                      <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => onEdit(transaction)}>
+                                  <Pencil className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => onDelete(transaction)} className="text-destructive">
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                          </DropdownMenuContent>
+                      </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </div>
@@ -189,6 +192,20 @@ export default function PayoutsClient() {
     }
   });
 
+  useEffect(() => {
+    if (selectedPayout && isEditDialogOpen) {
+        const payoutDate = selectedPayout.date instanceof Date 
+            ? selectedPayout.date 
+            : (selectedPayout.date as any).toDate();
+
+        form.reset({
+            description: selectedPayout.description,
+            amount: selectedPayout.amount,
+            date: payoutDate,
+        });
+    }
+  }, [selectedPayout, isEditDialogOpen, form]);
+
   const handleAddPayout = (values: z.infer<typeof payoutSchema>) => {
     if (!firestore) return;
 
@@ -218,11 +235,6 @@ export default function PayoutsClient() {
 
   const openEditDialog = (payout: Transaction) => {
     setSelectedPayout(payout);
-    form.reset({
-        description: payout.description,
-        amount: payout.amount,
-        date: new Date(payout.date),
-    });
     setIsEditDialogOpen(true);
   };
   
@@ -266,7 +278,11 @@ export default function PayoutsClient() {
     if (!transactions) return [];
     return transactions
       .filter((transaction) => transaction.category === 'Payout')
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .sort((a, b) => {
+        const dateA = a.date instanceof Date ? a.date : (a.date as any).toDate();
+        const dateB = b.date instanceof Date ? b.date : (b.date as any).toDate();
+        return dateB.getTime() - dateA.getTime();
+      });
   }, [transactions]);
 
 

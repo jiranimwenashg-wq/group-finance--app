@@ -330,10 +330,11 @@ function formatTransactionsForWhatsApp(transactions: Transaction[]): string {
   const header = `*FinanceFlow AI - Recent Transactions*`;
 
   const items = transactions.map((t, index) => {
-    const date = new Date(t.date).toLocaleDateString('en-GB'); // DD/MM/YYYY
+    const date = t.date instanceof Date ? t.date : (t.date as any).toDate();
+    const formattedDate = date.toLocaleDateString('en-GB'); // DD/MM/YYYY
     const sign = t.type === 'Income' ? '+' : '-';
     const member = t.memberName ? ` (${t.memberName})` : '';
-    return `${index + 1}. ${t.description}${member} - ${sign}${formatCurrency(Math.abs(t.amount))} on ${date}`;
+    return `${index + 1}. ${t.description}${member} - ${sign}${formatCurrency(Math.abs(t.amount))} on ${formattedDate}`;
   }).join('\n');
 
   return `${header}\n\n${items}`;
@@ -365,11 +366,13 @@ function TransactionsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.map((transaction, index) => (
+            {transactions.map((transaction, index) => {
+               const transactionDate = transaction.date instanceof Date ? transaction.date : (transaction.date as any).toDate();
+               return (
               <TableRow key={transaction.id}>
                 <TableCell className="font-medium">{index + 1}</TableCell>
                 <TableCell>
-                  {new Date(transaction.date).toLocaleDateString()}
+                  {transactionDate.toLocaleDateString()}
                 </TableCell>
                 <TableCell>{transaction.memberName || 'N/A'}</TableCell>
                 <TableCell className="font-medium">
@@ -419,7 +422,7 @@ function TransactionsTable({
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
-            ))}
+            )})}
           </TableBody>
         </Table>
       </div>
@@ -468,7 +471,11 @@ function WhatsAppExportDialog({ transactions }: { transactions: Transaction[] })
 
     const recentTransactions = useMemo(() => {
         return transactions
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .sort((a, b) => {
+              const dateA = a.date instanceof Date ? a.date : (a.date as any).toDate();
+              const dateB = b.date instanceof Date ? b.date : (b.date as any).toDate();
+              return dateB.getTime() - dateA.getTime();
+            })
             .slice(0, 5);
     }, [transactions]);
     
@@ -545,10 +552,14 @@ export default function TransactionsClient() {
 
   useEffect(() => {
     if (selectedTransaction) {
+      const transactionDate = selectedTransaction.date instanceof Date 
+        ? selectedTransaction.date 
+        : (selectedTransaction.date as any).toDate();
+
       editForm.reset({
         description: selectedTransaction.description,
         amount: selectedTransaction.amount,
-        date: new Date(selectedTransaction.date),
+        date: transactionDate,
         type: selectedTransaction.type,
         category: selectedTransaction.category,
         memberId: selectedTransaction.memberId,
@@ -619,9 +630,10 @@ export default function TransactionsClient() {
     return transactions
       .filter((transaction) => {
         const searchTerm = filter.toLowerCase();
+        const transactionDate = transaction.date instanceof Date ? transaction.date : (transaction.date as any).toDate();
         
         // Date filter
-        const dateMatch = !date || new Date(transaction.date).toDateString() === date.toDateString();
+        const dateMatch = !date || transactionDate.toDateString() === date.toDateString();
 
         // Text filter
         const descriptionMatch = transaction.description
@@ -636,7 +648,11 @@ export default function TransactionsClient() {
         
         return dateMatch && (descriptionMatch || (memberNameMatch ?? false) || categoryMatch);
       })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .sort((a, b) => {
+        const dateA = a.date instanceof Date ? a.date : (a.date as any).toDate();
+        const dateB = b.date instanceof Date ? b.date : (b.date as any).toDate();
+        return dateB.getTime() - dateA.getTime();
+      });
   }, [transactions, filter, date]);
 
   const contributionTransactions = useMemo(() => {
