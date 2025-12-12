@@ -92,7 +92,8 @@ const transactionSchema = z.object({
     'Social Fund',
     'Operational',
     'Last Respect',
-    'Loan Repayment'
+    'Loan Repayment',
+    'Payout'
   ]),
   memberId: z.string().optional(),
 });
@@ -271,6 +272,7 @@ function AddTransactionDialog({
                         <SelectItem value="Operational">Operational</SelectItem>
                         <SelectItem value="Last Respect">Last Respect</SelectItem>
                         <SelectItem value="Loan Repayment">Loan Repayment</SelectItem>
+                        <SelectItem value="Payout">Payout</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -803,7 +805,8 @@ export default function TransactionsClient() {
               | 'Social Fund'
               | 'Operational'
               | 'Last Respect'
-              | 'Loan Repayment',
+              | 'Loan Repayment'
+              | 'Payout',
             memberId: member?.id,
             memberName: member?.name,
             groupId: GROUP_ID,
@@ -1103,6 +1106,7 @@ export default function TransactionsClient() {
                         <SelectItem value="Operational">Operational</SelectItem>
                         <SelectItem value="Last Respect">Last Respect</SelectItem>
                         <SelectItem value="Loan Repayment">Loan Repayment</SelectItem>
+                        <SelectItem value="Payout">Payout</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

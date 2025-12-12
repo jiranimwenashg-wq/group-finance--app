@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -31,6 +32,7 @@ const navIconClasses = "text-primary";
 const financialLinks = [
   { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className={navIconClasses} /> },
   { href: "/dashboard/transactions", label: "Transactions", icon: <Banknote className={navIconClasses} /> },
+  { href: "/dashboard/payouts", label: "Payouts", icon: <HandCoins className={navIconClasses} /> },
   { href: "/dashboard/reports", label: "Reports", icon: <FileCheck className={navIconClasses} /> },
   { href: "/dashboard/loans", label: "Loans", icon: <Landmark className={navIconClasses} /> },
 ];

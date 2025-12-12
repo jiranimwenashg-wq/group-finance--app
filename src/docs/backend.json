@@ -117,7 +117,8 @@
             "Social Fund",
             "Operational",
             "Last Respect",
-            "Loan Repayment"
+            "Loan Repayment",
+            "Payout"
           ]
         }
       },
@@ -349,6 +350,10 @@
             "Paid Off"
           ],
           "description": "The current status of the loan."
+        },
+        "reason": {
+          "type": "string",
+          "description": "The reason the loan was issued."
         }
       },
       "required": [
@@ -360,7 +365,8 @@
         "interestRate",
         "balance",
         "issueDate",
-        "status"
+        "status",
+        "reason"
       ]
     }
   },
