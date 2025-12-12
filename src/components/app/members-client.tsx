@@ -158,6 +158,7 @@ function TableSkeleton() {
             <Table>
                 <TableHeader>
                     <TableRow>
+                        <TableHead><Skeleton className="h-5 w-8" /></TableHead>
                         <TableHead><Skeleton className="h-5 w-32" /></TableHead>
                         <TableHead><Skeleton className="h-5 w-32" /></TableHead>
                         <TableHead><Skeleton className="h-5 w-24" /></TableHead>
@@ -168,6 +169,7 @@ function TableSkeleton() {
                 <TableBody>
                     {[...Array(5)].map((_, i) => (
                         <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-8" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-36" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-36" /></TableCell>
                             <TableCell><Skeleton className="h-5 w-28" /></TableCell>
@@ -436,6 +438,7 @@ export default function MembersClient() {
                 <Table>
                 <TableHeader>
                     <TableRow>
+                    <TableHead className="w-[50px]">#</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Join Date</TableHead>
@@ -444,8 +447,9 @@ export default function MembersClient() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {filteredMembers.map((member) => (
+                    {filteredMembers.map((member, index) => (
                     <TableRow key={member.id} id={member.name.replace(/\s+/g, '-')}>
+                        <TableCell className="font-medium">{index + 1}</TableCell>
                         <TableCell className="font-medium">{member.name}</TableCell>
                         <TableCell>
                         <div className="flex flex-col">
@@ -584,5 +588,3 @@ export default function MembersClient() {
     </div>
   );
 }
-
-    
