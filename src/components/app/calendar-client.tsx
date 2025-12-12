@@ -364,6 +364,9 @@ export default function CalendarClient() {
                                             selected={field.value}
                                             onSelect={field.onChange}
                                             initialFocus
+                                            captionLayout="dropdown-buttons"
+                                            fromYear={new Date().getFullYear() - 10}
+                                            toYear={new Date().getFullYear()}
                                         />
                                         </PopoverContent>
                                     </Popover>
@@ -470,6 +473,9 @@ export default function CalendarClient() {
                                                   selected={field.value}
                                                   onSelect={field.onChange}
                                                   initialFocus
+                                                  captionLayout="dropdown-buttons"
+                                                  fromYear={new Date().getFullYear() - 10}
+                                                  toYear={new Date().getFullYear()}
                                               />
                                               </PopoverContent>
                                           </Popover>
@@ -554,3 +560,5 @@ export default function CalendarClient() {
     </div>
   );
 }
+
+    

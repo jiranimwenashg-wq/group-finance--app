@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -339,6 +340,9 @@ export default function PayoutsClient() {
                                     selected={field.value}
                                     onSelect={field.onChange}
                                     initialFocus
+                                    captionLayout="dropdown-buttons"
+                                    fromYear={new Date().getFullYear() - 10}
+                                    toYear={new Date().getFullYear()}
                                     />
                                 </PopoverContent>
                                 </Popover>
@@ -429,6 +433,9 @@ export default function PayoutsClient() {
                                     selected={field.value}
                                     onSelect={field.onChange}
                                     initialFocus
+                                    captionLayout="dropdown-buttons"
+                                    fromYear={new Date().getFullYear() - 10}
+                                    toYear={new Date().getFullYear()}
                                     />
                                 </PopoverContent>
                                 </Popover>
@@ -489,3 +496,5 @@ export default function PayoutsClient() {
     </div>
   );
 }
+
+    

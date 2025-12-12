@@ -208,6 +208,9 @@ function AddTransactionDialog({
                           selected={field.value}
                           onSelect={field.onChange}
                           initialFocus
+                          captionLayout="dropdown-buttons"
+                          fromYear={new Date().getFullYear() - 10}
+                          toYear={new Date().getFullYear()}
                         />
                       </PopoverContent>
                     </Popover>
@@ -1021,6 +1024,9 @@ export default function TransactionsClient() {
                         selected={date}
                         onSelect={setDate}
                         className="rounded-md border"
+                        captionLayout="dropdown-buttons"
+                        fromYear={new Date().getFullYear() - 10}
+                        toYear={new Date().getFullYear()}
                     />
                 </CardContent>
             </Card>
@@ -1080,6 +1086,9 @@ export default function TransactionsClient() {
                           selected={field.value}
                           onSelect={field.onChange}
                           initialFocus
+                          captionLayout="dropdown-buttons"
+                          fromYear={new Date().getFullYear() - 10}
+                          toYear={new Date().getFullYear()}
                         />
                       </PopoverContent>
                     </Popover>
@@ -1186,3 +1195,5 @@ export default function TransactionsClient() {
     </div>
   );
 }
+
+    
