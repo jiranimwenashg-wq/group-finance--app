@@ -2,7 +2,7 @@
 'use client';
 
 import { Suspense, useMemo } from 'react';
-import { ArrowDownLeft, ArrowUpRight, Scale, HandCoins, PiggyBank } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Scale, HandCoins, PiggyBank, UserPlus, CircleDollarSign, TrendingUp, Briefcase } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import {
   Card,
@@ -58,6 +58,23 @@ function OverviewCards({ transactions, loans }: { transactions: Transaction[], l
     const paidLoans = loans
         .filter(l => l.status === 'Paid Off')
         .reduce((sum, l) => sum + l.principal, 0);
+        
+    const newMemberFees = recentTransactions
+        .filter(t => t.category === 'New Member Fee')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const fines = recentTransactions
+        .filter(t => t.category === 'Fines')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const interestIncome = recentTransactions
+        .filter(t => t.category === 'Interest Income')
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+    const dividends = recentTransactions
+        .filter(t => t.category === 'Dividends')
+        .reduce((sum, t) => sum + t.amount, 0);
+
 
     return {
       income,
@@ -66,6 +83,10 @@ function OverviewCards({ transactions, loans }: { transactions: Transaction[], l
       totalBalance: totalIncome - totalExpenses,
       outstandingLoans,
       paidLoans,
+      newMemberFees,
+      fines,
+      interestIncome,
+      dividends,
     };
   }, [transactions, loans]);
 
@@ -153,75 +174,81 @@ function OverviewCards({ transactions, loans }: { transactions: Transaction[], l
           </p>
         </CardContent>
       </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">New Member Fees</CardTitle>
+          <UserPlus className="h-4 w-4 text-green-500" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {formatCurrency(overview.newMemberFees)}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            in the last 30 days
+          </p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Fines Collected</CardTitle>
+          <CircleDollarSign className="h-4 w-4 text-green-500" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {formatCurrency(overview.fines)}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            in the last 30 days
+          </p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Interest Income</CardTitle>
+          <TrendingUp className="h-4 w-4 text-green-500" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {formatCurrency(overview.interestIncome)}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            in the last 30 days
+          </p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Dividends Received</CardTitle>
+          <Briefcase className="h-4 w-4 text-green-500" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {formatCurrency(overview.dividends)}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            in the last 30 days
+          </p>
+        </CardContent>
+      </Card>
     </>
   );
 }
 
 function OverviewCardsSkeleton() {
-  return (
-    <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-          <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="mt-1 h-3 w-1/2" />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-          <ArrowDownLeft className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="mt-1 h-3 w-1/2" />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Net Change</CardTitle>
-          <Scale className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="mt-1 h-3 w-1/2" />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
-          <Scale className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="mt-1 h-3 w-1/2" />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Outstanding Loans</CardTitle>
-          <HandCoins className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="mt-1 h-3 w-1/2" />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Paid Loans</CardTitle>
-          <PiggyBank className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="mt-1 h-3 w-1/2" />
-        </CardContent>
-      </Card>
-    </>
-  );
+    const cardSkeletons = Array.from({ length: 10 }, (_, i) => (
+        <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="mt-1 h-3 w-1/2" />
+            </CardContent>
+        </Card>
+    ));
+
+  return <>{cardSkeletons}</>;
 }
 
 function RecentTransactionsSkeleton() {
@@ -265,7 +292,7 @@ function DashboardData() {
   if (isLoadingTransactions || !transactions || isLoadingLoans || !loans) {
     return (
       <>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <OverviewCardsSkeleton />
         </div>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
@@ -278,7 +305,7 @@ function DashboardData() {
   
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <OverviewCards transactions={transactions} loans={loans} />
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
@@ -300,7 +327,7 @@ export default function DashboardPage() {
       </div>
       <Suspense fallback={
          <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               <OverviewCardsSkeleton />
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
@@ -314,3 +341,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
