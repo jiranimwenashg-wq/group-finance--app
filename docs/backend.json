@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Group": {
@@ -21,12 +22,17 @@
         "description": {
           "type": "string",
           "description": "A description of the group."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user who owns the group."
         }
       },
       "required": [
         "id",
         "name",
-        "currency"
+        "currency",
+        "ownerId"
       ]
     },
     "User": {
@@ -51,13 +57,19 @@
         "name": {
           "type": "string",
           "description": "Full name of the user."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role in the group.",
+          "enum": ["owner", "admin", "member"]
         }
       },
       "required": [
         "id",
         "groupId",
         "email",
-        "name"
+        "name",
+        "role"
       ]
     },
     "Transaction": {
@@ -78,6 +90,10 @@
           "type": "string",
           "description": "Reference to the Member associated with this transaction. (Relationship: Member 1:N Transaction)"
         },
+        "loanId": {
+          "type": "string",
+          "description": "Reference to the Loan this transaction is a payment for. (Relationship: Loan 1:N Transaction)"
+        },
         "date": {
           "type": "string",
           "description": "Date of the transaction.",
@@ -93,13 +109,21 @@
         },
         "category": {
           "type": "string",
-          "description": "Category of the transaction (e.g., income, expense)."
+          "description": "Category of the transaction (e.g., income, expense).",
+           "enum": [
+            "Contribution",
+            "Late Fee",
+            "Project",
+            "Social Fund",
+            "Operational",
+            "Last Respect",
+            "Loan Repayment"
+          ]
         }
       },
       "required": [
         "id",
         "groupId",
-        "memberId",
         "date",
         "amount",
         "description",
@@ -278,6 +302,66 @@
         "scheduleData",
         "generationDate"
       ]
+    },
+    "Loan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Loan",
+      "type": "object",
+      "description": "Represents a loan or advance issued to a member.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the loan."
+        },
+        "groupId": {
+          "type": "string",
+          "description": "Reference to the Group this loan belongs to."
+        },
+        "memberId": {
+          "type": "string",
+          "description": "Reference to the Member who received the loan."
+        },
+        "memberName": {
+          "type": "string",
+          "description": "Denormalized name of the member for display purposes."
+        },
+        "principal": {
+          "type": "number",
+          "description": "The initial amount of the loan."
+        },
+        "interestRate": {
+          "type": "number",
+          "description": "The interest rate for the loan (e.g., 5 for 5%)."
+        },
+        "balance": {
+          "type": "number",
+          "description": "The current outstanding balance of the loan."
+        },
+        "issueDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the loan was issued."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "Active",
+            "Paid Off"
+          ],
+          "description": "The current status of the loan."
+        }
+      },
+      "required": [
+        "id",
+        "groupId",
+        "memberId",
+        "memberName",
+        "principal",
+        "interestRate",
+        "balance",
+        "issueDate",
+        "status"
+      ]
     }
   },
   "auth": {
@@ -447,6 +531,26 @@
             {
               "name": "savingsScheduleId",
               "description": "Unique identifier for the savings schedule."
+            }
+          ]
+        }
+      },
+      {
+        "path": "groups/{groupId}/loans/{loanId}",
+        "definition": {
+          "entityName": "Loan",
+          "schema": {
+            "$ref": "#/backend/entities/Loan"
+          },
+          "description": "Represents a loan or advance issued to a member. Includes loan details like principal, balance, and status.",
+          "params": [
+            {
+              "name": "groupId",
+              "description": "Unique identifier for the group."
+            },
+            {
+              "name": "loanId",
+              "description": "Unique identifier for the loan."
             }
           ]
         }
