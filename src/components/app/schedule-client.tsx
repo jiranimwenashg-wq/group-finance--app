@@ -409,7 +409,7 @@ export default function ScheduleClient() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the payout for <span className="font-semibold">{selectedItem?.memberName}</span> on <span className="font-semibold">{selectedItem ? format(new Date(selectedItem.payoutDate), "do MMMM yyyy") : ''}</span>.
+              This will permanently delete the payout for <span className="font-semibold">{selectedItem?.memberName}</span> on <span className="font-semibold">{selectedItem ? format(new Date(selectedItem.payoutDate), "do MMMM yyyy") : ''}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -11,7 +12,6 @@ import type { FirebaseApp } from 'firebase/app';
 import type { Firestore } from 'firebase/firestore';
 import type { Auth } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { setDocumentNonBlocking } from './non-blocking-updates';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -103,5 +103,3 @@ export function useMemoFirebase<T>(
 
   return memoized;
 }
-
-export { setDocumentNonBlocking };

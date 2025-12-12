@@ -1,3 +1,4 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -39,3 +40,4 @@ export * from './auth/use-user';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
+export * from './non-blocking-updates';
