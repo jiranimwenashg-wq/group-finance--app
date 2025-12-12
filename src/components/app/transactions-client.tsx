@@ -985,13 +985,13 @@ export default function TransactionsClient() {
                           <TabsTrigger value="loan_repayment">Loan Repayments</TabsTrigger>
                         </TabsList>
                         <TabsContent value="all" className="mt-4">
-                        <TransactionsTable transactions={filteredTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
+                            <TransactionsTable transactions={filteredTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
                         </TabsContent>
                         <TabsContent value="contributions" className="mt-4">
-                        <TransactionsTable transactions={contributionTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
+                            <TransactionsTable transactions={contributionTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
                         </TabsContent>
                         <TabsContent value="last_respect" className="mt-4">
-                        <TransactionsTable transactions={lastRespectTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
+                            <TransactionsTable transactions={lastRespectTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
                         </TabsContent>
                         <TabsContent value="loan_repayment" className="mt-4">
                           <TransactionsTable transactions={loanRepaymentTransactions} onEdit={openEditDialog} onDelete={openDeleteDialog} />
