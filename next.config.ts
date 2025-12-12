@@ -54,14 +54,6 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
     ],
   },
-
-  experimental: {
-    serverExternalPackages: [
-      '@genkit-ai/google-genai',
-      'firebase-admin',
-      'long',
-    ],
-  },
 };
 
 export default nextConfig;
